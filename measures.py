@@ -224,9 +224,13 @@ def get_vols(cby_d, normalise=True):
 
 
 #sense counts
-def load_senses(path):
+def load_senses(path, a_s=None):
     
-    with open(f'{path}/senses', 'r') as f_name:
+    if a_s is None:
+        path = f'{path}/senses'
+    else:
+        path = f'{path}/added_senses_{a_s[0]}_{a_s[1]}'
+    with open(path, 'r') as f_name:
         senses = f_name.read()
     senses = senses.split('\n')
     senses = (sense.split('\t') for sense in senses if len(sense) > 1)
@@ -257,14 +261,14 @@ def sense_counts(senses):
     return all_senses, s_counts, scounts_cat
 
 
-def scounts_by_year(c_path, o_path):
+def scounts_by_year(c_path, o_path, a_s=None):
 
     paths = [f'{c_path}/{path}' for path in os.listdir(c_path) if 'senses' in path]
     all_years_senses = 0 
     all_years_sc = {}
     for path in tqdm(paths):
         year = int(path.split('/')[-1].split('_')[0])
-        senses = load_senses(path)
+        senses = load_senses(path, a_s=a_s)
         s_path = f'{o_path}/sense_counts'
         if not os.path.exists(s_path):
             os.makedirs(s_path)

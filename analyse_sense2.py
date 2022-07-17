@@ -100,21 +100,21 @@ def main():
         all_years_sc = pickle.load(f_name)
     with open(f'{to_path}/cby_d.pickle', 'rb') as f_name:
         cby_d = pickle.load(f_name)
-#    categories = list(set([cat for y in snpmi_y_d for cat in snpmi_y_d[y]])) 
-#    dep, leg = get_leg_dep_m(cby_d, snpmi_y_d, all_years_sc)  
-#    U1, p = mannwhitneyu(dep, leg)
-#    print(p)
+    categories = list(set([cat for y in snpmi_y_d for cat in snpmi_y_d[y]])) 
+    dep, leg = get_leg_dep_m(cby_d, snpmi_y_d, all_years_sc)  
+    U1, p = mannwhitneyu(dep, leg)
+    print(p)
 
-#    #correlation between top M* and top T* word level
-#    with open(f'{to_path}/tnpmi_y_d.pickle', 'rb') as f_name:
-#        tnpmi_y_d = pickle.load(f_name)
-#    sc_d = get_sc_d(sc_path)
-#    tm_tpls = misc.get_items('tm', sa_path, top_scores_tm, tnpmi_y_d, snpmi_y_d, sc_d)
-#    print(len(tm_tpls))
-#    X = [tpl[1][0] for tpl in tm_tpls]
-#    y = [tpl[1][1] for tpl in tm_tpls]
-#    rho, p_val, c_i = a_s.spearman_scatter(X, y, f'{sa_path}/corr_tm.png', font_size=20, alpha=0.1, x_label='$T*$', y_label='$M_t*$')
-#    print(c_i)
+    #correlation between top M* and top T* word level
+    with open(f'{to_path}/tnpmi_y_d.pickle', 'rb') as f_name:
+        tnpmi_y_d = pickle.load(f_name)
+    sc_d = get_sc_d(sc_path)
+    tm_tpls = misc.get_items('tm', sa_path, top_scores_tm, tnpmi_y_d, snpmi_y_d, sc_d)
+    print(len(tm_tpls))
+    X = [tpl[1][0] for tpl in tm_tpls]
+    y = [tpl[1][1] for tpl in tm_tpls]
+    rho, p_val, c_i = a_s.spearman_scatter(X, y, f'{sa_path}/corr_tm.png', font_size=20, alpha=0.1, x_label='$T*$', y_label='$M_t*$')
+    print(c_i)
 
     
 

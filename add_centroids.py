@@ -1,3 +1,4 @@
+import math
 from sklearn.cluster import KMeans
 import sklearn
 from sklearn.metrics.pairwise import cosine_similarity
@@ -10,12 +11,11 @@ from torch import nn
 import os
 import pickle
 from transformers import BertTokenizer, BertModel
+import argparse
 
 
-a_s = (10, 15)
 k_range = (2, 10)
 data_root = '/media/gog/external2/corpora'
-i_path = f'{data_root}/gov_corp/clusters_{k_range[0]}_{k_range[1]}'
 words = [
         'resilience',
         'resilient',
@@ -23,8 +23,7 @@ words = [
         'sustainability',
         'wellbeing'
         ]
-o_path = f'{i_path}/added_centroids_{a_s[0]}_{a_s[1]}'
-
+i_path = f'{data_root}/gov_corp/clusters_{k_range[0]}_{k_range[1]}'
 SEED = 0
 batch_size = 32
 dropout_rate = 0.25
@@ -35,22 +34,22 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def cluster_embeddings(data, kr, ID=None, dim_reduct=None, rs=SEED, lamb=10000, finetuned=False): 
     
-        ks = range(kr[0], kr[1])
-        centroids = {} 
-        rss = np.zeros(len(ks))
-        for i, k in tqdm(enumerate(ks), total=(len(ks))):
-            km = KMeans(k, random_state=rs)
-            km.fit(data)
-            rss[i] = km.inertia_
-            centroids[k] = km.cluster_centers_
-        crits = []
-        for i in range(len(ks)): 
-            k = ks[i] 
-            crit = rss[i] + lamb*k
-            crits.append(crit)
-        best_k = np.argmin(crits)
-        
-        return centroids[ks[best_k]] 
+    ks = range(kr[0], kr[1])
+    centroids = {} 
+    rss = np.zeros(len(ks)) 
+    for i, k in tqdm(enumerate(ks), total=(len(ks))):
+        km = KMeans(k, random_state=rs)
+        km.fit(data)
+        rss[i] = km.inertia_
+        centroids[k] = km.cluster_centers_
+    crits = []
+    for i in range(len(ks)): 
+        k = ks[i] 
+        crit = rss[i] + lamb*k
+        crits.append(crit)
+    best_k = np.argmin(crits)
+    
+    return centroids[ks[best_k]] 
 
 
 class ClusterRetriever():
@@ -154,8 +153,8 @@ class ClusterRetriever():
             sims = cosine_similarity(reps, centroids) # IDs x n_centroids
             labels = np.argmax(sims, axis=1)
             for i, _ in enumerate(IDs):
-                cluster_d[tok].append((reps[i], labels[i])) 
-            
+                cluster_d[tok].append((reps[i], labels[i], centroids[labels[i]])) 
+           
 
     def get_embeddings_and_match(self, batched_data, batched_words, batched_masks, batched_users, clusters_d, centroids_d): 
         
@@ -238,7 +237,29 @@ class ClusterRetriever():
 #        outfile.close()
 
 
+def add_centroids(clusters_d, o_path, a_s, min_len=100):
+
+    for w in clusters_d:
+        labels = list(set([tpl[1] for tpl in clusters_d[w]]))
+        centroids = []
+        for label in labels:
+            data = [tpl[0] for tpl in clusters_d[w] if tpl[1] == label]
+            orig_centroid = [tpl[2] for tpl in clusters_d[w] if tpl[1] == label][0]
+            orig_centroid = np.reshape(orig_centroid, (1, len(orig_centroid)))
+            if len(data) >= min_len:
+                centroids.append(cluster_embeddings(data, a_s, lamb=10000))
+            else:
+                centroids.append(orig_centroid)
+        centroids = np.concatenate(centroids)
+        np.save(f'{o_path}/{w}.npy', centroids) 
+
+
 def main():
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-a_s', '-additional_senses', required=True)
+    args = parser.parse_args()
+    a_s = [int(v) for v in args.a_s.split('-')]
 
     with open(f'{i_path}/train_samples.pickle', 'rb') as f_name:
         train_samples = pickle.load(f_name)
@@ -261,22 +282,12 @@ def main():
         #get embeddings of matched samples
         model.get_embeddings_and_match(batched_data, batched_words, batched_masks, batched_users, clusters_d, centroids_d)
     
-    #run k-means on reconstructed target clusters to add more centroids
+    #run k-means on reconstructed target clusters to add more centroids if reconstructed clusters 
+    #are above a certain size
+    o_path = f'{i_path}/added_centroids_{a_s[0]}_{a_s[1]}'
     if not os.path.exists(o_path):
         os.makedirs(o_path)
-    for w in clusters_d:
-        labels = list(set([tpl[-1] for tpl in clusters_d[w]]))
-        kr = (
-                int(a_s[0] / len(labels)),
-                int(a_s[1] / len(labels))
-                )
-        centroids = []
-        for label in labels:
-            data = [tpl[0] for tpl in clusters_d[w] if tpl[1] == label]
-            centroids.append(cluster_embeddings(data, kr, lamb=10000))
-        centroids = np.concatenate(centroids)
-        np.save(f'{o_path}/{w}.npy', centroids) 
-
+    add_centroids(clusters_d, o_path, a_s) 
 
 if __name__ == '__main__':
 

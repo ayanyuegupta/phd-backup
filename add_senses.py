@@ -1,14 +1,13 @@
+import argparse
 import torch
 from transformers import BertTokenizer, BertModel
-from gov_cluster_match import Matcher 
+from cluster_match import Matcher 
 import pickle
 import os
-import subprocess
 
 
 years = [2000 + i for i in range(21)]
 k_range = (2, 10)
-a_s =  (30, 40)
 targets = [
         'resilience',
         'resilient',
@@ -82,6 +81,11 @@ def see_senses(targets, c_path, d_path, o_path, a_s=None):
 
 
 def main():
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-a_s', '-additional_senses', required=True)
+    args = parser.parse_args()
+    a_s = [int(v) for v in args.a_s.split('-')]
 
     #load model
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)

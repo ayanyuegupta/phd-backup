@@ -14,26 +14,14 @@ from transformers import BertTokenizer, BertModel
 import argparse
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument('-y', '--year')
-parser.add_argument('-t', '--test', action='store_true')
-parser.add_argument('-ac', '--added_centroids')
-args = parser.parse_args()
-year = args.year
-test = args.test
-added_centroids = args.added_centroids
-if added_centroids is not None:
-    added_centroids = added_centroids.split('-')
 
 k_range = (2, 10)
 root = '/home/gog/projects/gov_lv'
 data_root = '/media/gog/external2/corpora/gov_corp'
 data_path = f'{data_root}/sample'
-i_path = f'{data_path}/{year}.pickle'
 o_path1 = f'{root}/measures_output'
 name = '_'.join([str(k_range[0]), str(k_range[1])])
 c_path = f'{data_root}/clusters_{name}'
-s_path = f'{c_path}/{year}_senses'
 
 SEED = 0
 batch_size = 32
@@ -236,6 +224,20 @@ class Matcher():
 
 
 def main():
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-y', '--year', required=True)
+    parser.add_argument('-t', '--test', action='store_true')
+    parser.add_argument('-ac', '--added_centroids')
+    args = parser.parse_args()
+    year = args.year
+    test = args.test
+    added_centroids = args.added_centroids
+    if added_centroids is not None:
+        added_centroids = added_centroids.split('-')
+    
+    i_path = f'{data_path}/{year}.pickle'
+    s_path = f'{c_path}/{year}_senses'
 
     if not os.path.exists(s_path):
         os.makedirs(s_path)

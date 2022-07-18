@@ -50,7 +50,7 @@ colours = m.random_colours(13)
 ####
 
 
-def plot_gam(X, y, save_path, word, size=(6, 3), colour_label=None, x_label=None, y_label=None, custom_xticks=None, rotation=0, ax=None, conf_int=True, alphas=(1, 1)):
+def plot_gam(X, y, save_path, word, size=(6, 3), colour_label=None, x_label=None, y_label=None, custom_xticks=None, rotation=0, ax=None, conf_int=True, alphas=(0.2, 1)):
      
     gam = LinearGAM(s(0)).fit(X, y)
 #    print(gam.summary())

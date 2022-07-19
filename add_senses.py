@@ -1,7 +1,7 @@
+from cluster_match import Matcher
 import argparse
 import torch
 from transformers import BertTokenizer, BertModel
-from cluster_match import Matcher 
 import pickle
 import os
 
@@ -91,21 +91,18 @@ def main():
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
     model_name = BertModel.from_pretrained('bert-base-uncased', output_hidden_states=True)
     model = Matcher(tokenizer, model_name)
-    with open(f'{c_path}/vocab.pickle', 'rb') as f_name:
-       vocab = pickle.load(f_name)
+
+    as_path = f'{c_path}/added_centroids_{a_s[0]}_{a_s[1]}'
+    vocab = [f_name.split('.')[0] for f_name in os.listdir(as_path)]
     centroids_d = model.load_centroids(vocab, c_path, added_centroids=a_s)
     vocab = set(centroids_d.keys())
     for y in years:
-        data_path = f'{data_root}/sample'
-        i_path = f'{data_path}/{y}.pickle'
         s_path = f'{c_path}/{y}_senses'
-        with open(i_path, 'rb') as f:
-            data = pickle.load(f)
         with open(f'{s_path}/v_sequences.pickle', 'rb') as f_name:
             v_sequences = pickle.load(f_name)
         sentences = []
         for w in vocab:
-            sentences += v_sequences[w] 
+            sentences += v_sequences[w]
         batched_data, batched_words, batched_masks, batched_users = model.get_batches(sentences, batch_size)    
         
         #DO NOT SET added_centroids TO None (KEYWORD ARG added_centroids DEFAULTS TO None) 

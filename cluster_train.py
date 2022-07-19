@@ -264,9 +264,12 @@ class Clusterer():
         return np.array(data)
 
 
-    def cluster_embeddings(self, data, ID=None, dim_reduct=None, rs=SEED, lamb=10000, finetuned=False): 
-    
-        ks = range(k_range[0], k_range[1])
+    def cluster_embeddings(self, data, ID=None, dim_reduct=None, rs=SEED, lamb=10000, finetuned=False, a_s=None): 
+        
+        if a_s is None:
+            ks = range(k_range[0], k_range[1])
+        else:
+            ks = range(a_s[0], a_s[1])
         centroids = {} 
         rss = np.zeros(len(ks))
         for i, k in tqdm(enumerate(ks), total=(len(ks))):
@@ -294,6 +297,7 @@ def main():
     #get data
     counts, all_counts = mi.get_items(['counts', 'all_counts'], o_path1, m.get_counts, i_path, regex_pattern='[^A-Za-z0-9\'.\s]+')
     vocab = mi.get_items('vocab', o_path2, get_vocabulary, counts, all_counts)
+    quit()
     get_all_seq(data_path, o_path2, vocab)
     train_samples = mi.get_items('train_samples', o_path2,  get_samples, o_path2, vocab, yearly_sample_size) 
 

@@ -228,13 +228,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-y', '--year', required=True)
     parser.add_argument('-t', '--test', action='store_true')
-    parser.add_argument('-ac', '--added_centroids')
     args = parser.parse_args()
     year = args.year
     test = args.test
-    added_centroids = args.added_centroids
-    if added_centroids is not None:
-        added_centroids = added_centroids.split('-')
     
     i_path = f'{data_path}/{year}.pickle'
     s_path = f'{c_path}/{year}_senses'
@@ -243,10 +239,10 @@ def main():
         os.makedirs(s_path)
     
     #get data
-    with open(f'{c_path}/vocab.pickle', 'rb') as f_name:
-        vocab = pickle.load(f_name)
-    with open(i_path, 'rb') as f:
-        data = pickle.load(f)
+#    with open(f'{c_path}/vocab.pickle', 'rb') as f_name:
+#        vocab = pickle.load(f_name)
+#    with open(i_path, 'rb') as f:
+#        data = pickle.load(f)
     with open(f'{s_path}/v_sequences.pickle', 'rb') as f_name:
         v_sequences = pickle.load(f_name)
     
@@ -256,6 +252,7 @@ def main():
     model = Matcher(tokenizer, model_name)
     
     #match
+    vocab = [w for w in v_sequences]
     centroids_d = model.load_centroids(vocab, c_path, added_centroids=added_centroids)
     vocab = set(centroids_d.keys())
     sentences = []
@@ -264,7 +261,7 @@ def main():
     if test:
         sentences = random.sample(sentences, 5000)
     batched_data, batched_words, batched_masks, batched_users = model.get_batches(sentences, batch_size)    
-    model.get_embeddings_and_match(batched_data, batched_words, batched_masks, batched_users, centroids_d, added_centroids=added_centroids)
+    model.get_embeddings_and_match(batched_data, batched_words, batched_masks, batched_users, centroids_d, s_path, added_centroids=added_centroids)
 
 
 if __name__ == '__main__':

@@ -93,16 +93,18 @@ def main():
     model = Matcher(tokenizer, model_name)
 
     as_path = f'{c_path}/added_centroids_{a_s[0]}_{a_s[1]}'
-    vocab = [f_name.split('.')[0] for f_name in os.listdir(as_path)]
-    centroids_d = model.load_centroids(vocab, c_path, added_centroids=a_s)
-    vocab = set(centroids_d.keys())
+    targets = [f_name.split('.')[0] for f_name in os.listdir(as_path)]
+    centroids_d = model.load_centroids(targets, c_path, added_centroids=a_s)
     for y in years:
         s_path = f'{c_path}/{y}_senses'
         with open(f'{s_path}/v_sequences.pickle', 'rb') as f_name:
             v_sequences = pickle.load(f_name)
+        vocab = [w for w in v_sequences]
         sentences = []
         for w in vocab:
             sentences += v_sequences[w]
+        sentences = list(set(sentences))
+        sentences = [tpl for tpl in sentences if any(w in tpl[1] for w in targets)] 
         batched_data, batched_words, batched_masks, batched_users = model.get_batches(sentences, batch_size)    
         
         #DO NOT SET added_centroids TO None (KEYWORD ARG added_centroids DEFAULTS TO None) 

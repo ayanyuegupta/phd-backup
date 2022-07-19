@@ -258,6 +258,7 @@ def main():
     sentences = []
     for w in vocab:
         sentences += v_sequences[w] 
+    sentences = list(set(sentences))
     if test:
         sentences = random.sample(sentences, 5000)
     batched_data, batched_words, batched_masks, batched_users = model.get_batches(sentences, batch_size)    

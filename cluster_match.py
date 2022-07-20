@@ -21,7 +21,7 @@ data_root = '/media/gog/external2/corpora/gov_corp'
 data_path = f'{data_root}/sample'
 o_path1 = f'{root}/measures_output'
 name = '_'.join([str(k_range[0]), str(k_range[1])])
-c_path = f'{data_root}/clusters_{name}'
+c_path = f'{data_root}/0clusters_{name}'
 
 SEED = 0
 batch_size = 32
@@ -253,7 +253,7 @@ def main():
     
     #match
     vocab = [w for w in v_sequences]
-    centroids_d = model.load_centroids(vocab, c_path, added_centroids=added_centroids)
+    centroids_d = model.load_centroids(vocab, c_path)
     vocab = set(centroids_d.keys())
     sentences = []
     for w in vocab:
@@ -261,8 +261,8 @@ def main():
     sentences = list(set(sentences))
     if test:
         sentences = random.sample(sentences, 5000)
-    batched_data, batched_words, batched_masks, batched_users = model.get_batches(sentences, batch_size)    
-    model.get_embeddings_and_match(batched_data, batched_words, batched_masks, batched_users, centroids_d, s_path, added_centroids=added_centroids)
+    batched_data, batched_words, batched_masks, batched_users = model.get_batches(sentences, batch_size)   
+    model.get_embeddings_and_match(batched_data, batched_words, batched_masks, batched_users, centroids_d, s_path)
 
 
 if __name__ == '__main__':

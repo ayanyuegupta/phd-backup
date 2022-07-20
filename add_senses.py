@@ -104,7 +104,7 @@ def main():
         for w in vocab:
             sentences += v_sequences[w]
         sentences = list(set(sentences))
-        sentences = [tpl for tpl in sentences if any(w in tpl[1] for w in targets)] 
+        sentences = [(tpl[0], tpl[1].lower(), tpl[1]) for tpl in sentences if any(w in tpl[1].lower() for w in targets)] 
         batched_data, batched_words, batched_masks, batched_users = model.get_batches(sentences, batch_size)    
         
         #DO NOT SET added_centroids TO None (KEYWORD ARG added_centroids DEFAULTS TO None) 

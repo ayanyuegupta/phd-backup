@@ -27,22 +27,15 @@ so_path = f'{root}/s_measures_output_{k_range[0]}_{k_range[1]}'
 c_path = f'{data_root}/clusters_{k_range[0]}_{k_range[1]}'
 
 
-def get_counts(c_path, ts_path, years):
+def get_counts(so_path, ts_path, years):
 
     tsc_d = {}
     sc_d = {y: {} for y in years}
     for y in years:
         with open(f'{ts_path}/sense_counts/{y}_scc.pickle', 'rb') as f_name:
             tsc_d[y] = pickle.load(f_name)
-        with open(f'{c_path}/{y}_senses/v_sequences.pickle', 'rb') as f_name:
-            v_sequences = pickle.load(f_name)
-        vocab = list(set([w for w in v_sequences]))
-        categories = list(set([cat for cat in tsc_d[y]]))
-        for cat in tqdm(categories, desc=str(y)):
-            sc_d[y][cat] = {}
-            for w in vocab:
-                cat_wlines = [line for line in v_sequences[w] if line[0].split('_')[0] == cat]
-                sc_d[y][cat][w] = len(cat_wlines)
+        with open(f'{so_path}/sense_counts/{y}_scc.pickle', 'rb') as f_name:
+            sc_d[y] = pickle.load(f_name)
 
     return tsc_d, sc_d
 
@@ -52,7 +45,7 @@ def target_rfs(targets, sc_d, tsc_d, a_s):
     
     o_d = {w: {} for w in targets}
     for w in targets:
-        w_senses = [f'{w}_{i}' for i in range(a_s[-1] * 2)]
+        w_senses = [f'{w}_{i}' for i in range(a_s[-1])]
         o_d[w] = {s: [0 for i, _ in enumerate(sc_d)] for s in w_senses}
         for i, year in enumerate(sc_d):
             total = sum([sc_d[year][cat][w] for cat in sc_d[year] for w in sc_d[year][cat]])
@@ -83,7 +76,7 @@ def plot_sense_rfs(rf_d, path, a_s, min_cdiff=0.6, leg_size=8, n_lcol=3):
         plt.savefig(f'{path}/{w}.png', bbox_inches='tight')
 
 
-def ts_npmi(tsc_yd, sc_yd):
+def ts_npmi(ts_cpath, c_path):
 
     tsnpmi_d = {cat: {} for cat in tsc_yd}
     categories = list(set([cat for cat in sc_yd]))
@@ -106,7 +99,7 @@ def ts_npmi(tsc_yd, sc_yd):
     return tsnpmi_d
 
 
-def tsnpmi_by_year(tsc_d, sc_d):
+def tsnpmi_by_year(ts_cpath, c_path):
     
     tsnpmi_y_d = {}
     for y in tsc_d:
@@ -133,7 +126,7 @@ def main():
     if not os.path.exists(ts_path):
         os.makedirs(ts_path)
     all_years_senses, all_years_sc = misc.get_items(['all_years_senses', 'all_years_sc'], ts_path, scounts_by_year, c_path, ts_path, a_s=a_s)
-    tsc_d, sc_d = misc.get_items(['tsc_d', 'sc_d'], ts_path, get_counts, c_path, ts_path, years)
+    tsc_d, sc_d = misc.get_items(['tsc_d', 'sc_d'], ts_path, get_counts, so_path, ts_path, years)
 
     #relative frequencies
     rf_d = target_rfs(targets, sc_d, tsc_d, a_s)
@@ -143,8 +136,8 @@ def main():
     plot_sense_rfs(rf_d, path, a_s)
 
     #get spec, vol measures
-    tsnpmi_y_d = tsnpmi_by_year(tsc_d, sc_d)
-    print(tsnpmi_y_d)
+#    tsnpmi_y_d = tsnpmi_by_year(tsc_d, sc_d)
+#    print(tsnpmi_y_d)
     
   
 if __name__ == '__main__':

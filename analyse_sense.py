@@ -44,10 +44,7 @@ categories = [
 'MOJ'
 ]
 
-if targets is not None:
-    name = '_'.join(targets + [str(k_range[0]), str(k_range[1])])
-else:
-    name = '_'.join([str(None), str(k_range[0]), str(k_range[1])])
+name = '_'.join([str(k_range[0]), str(k_range[1])])
 root = '/home/gog/projects/gov_lv'
 data_root = '/media/gog/external2/corpora'
 data_path = f'{data_root}/gov_corp/sample'

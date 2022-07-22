@@ -76,43 +76,60 @@ def plot_sense_rfs(rf_d, path, a_s, min_cdiff=0.6, leg_size=8, n_lcol=3):
         plt.savefig(f'{path}/{w}.png', bbox_inches='tight')
 
 
-def ts_npmi(ts_cpath, c_path):
+def ts_npmi(categories, tsc_yd, sc_yd):
 
     tsnpmi_d = {cat: {} for cat in tsc_yd}
-    categories = list(set([cat for cat in sc_yd]))
-    s_fw = sum([sc_yd[cat][w] for cat in categories for w in sc_yd[cat]])
-    for cat in tsc_yd:
+    s_fs = sum([sc_yd[cat][s] for cat in sc_yd for s in sc_yd[cat]])
+    for cat in categories:
         #P(sense | c)
-        s_fcw = sum([sc_yd[cat][w] for w in sc_yd[cat]])
+        s_fcs = sum([sc_yd[cat][s] for s in sc_yd[cat]])
         for s in tsc_yd[cat]:
-            p_ts_given_c = tsc_yd[cat][s] / s_fcw
+            p_ts_given_c = tsc_yd[cat][s] / s_fcs
             #P(sense)
             f_ts = sum([tsc_yd[cat][s] for cat in categories if s in tsc_yd[cat]]) 
-            p_ts = f_ts / s_fw
+            p_ts = f_ts / s_fs
             #sense pmi
-            spmi = math.log(p_ts_given_c / p_ts)
+            tspmi = math.log(p_ts_given_c / p_ts)
             #normalise
             #P(sense, cat)
-            p_tsc = -math.log(tsc_yd[cat][s] / s_fw)
-            tsnpmi_d[cat][s] = spmi / p_tsc
+            p_tsc = -math.log(tsc_yd[cat][s] / s_fs)
+            tsnpmi_d[cat][s] = tspmi / p_tsc
 
     return tsnpmi_d
 
 
-def tsnpmi_by_year(ts_cpath, c_path):
+def tsnpmi_by_year(tsc_d, sc_d):
     
     tsnpmi_y_d = {}
+    categories = list(set([cat for y in tsc_d for cat in tsc_d[y]]))
     for y in tsc_d:
-        tsnpmi_y_d[y] = ts_npmi(tsc_d[y], sc_d[y])
+        tsnpmi_y_d[y] = ts_npmi(categories, tsc_d[y], sc_d[y])
     
     return tsnpmi_y_d
 
 
-def ts_nvol():
+def ts_nvol(tsc_d, sc_d):
 
-    pass
+    categories = list(set([cat for y in tsc_d for cat in tsc_d[y]]))
+    tsnvol_d = {y: {cat: {} for cat in categories} for y in years}
+    for cat in categories:
+        s_fs = sum([sc_d[y][cat][s] for y in sc_d for s in sc_d[y][cat]])
+        for y in tsc_d:
+            #P(sense_c | t)
+            s_fts = sum([sc_d[y][cat][s] for s in sc_d[y][cat]])
+            for s in tsc_d[y][cat]:
+                p_ts_given_t = tsc_d[y][cat][s] / s_fts
+                #P(sense_c)
+                f_ts = sum([tsc_d[year][cat][s] for year in tsc_d if s in tsc_d[year][cat]])
+                p_ts = f_ts / s_fs
+                #vol
+                tsvol = math.log(p_ts_given_t / p_ts)
+                #normalise
+                #P(sense, t)
+                p_tst = -math.log(tsc_d[y][cat][s] / s_fs)
+                tsnvol_d[y][cat][s] = tsvol / p_tst
     
-
+    return tsnvol_d
 
 def main():
     
@@ -136,8 +153,8 @@ def main():
     plot_sense_rfs(rf_d, path, a_s)
 
     #get spec, vol measures
-#    tsnpmi_y_d = tsnpmi_by_year(tsc_d, sc_d)
-#    print(tsnpmi_y_d)
+    tsnpmi_y_d = misc.get_items('tsnpmi_y_d', ts_path, tsnpmi_by_year, tsc_d, sc_d)
+    tsnvol_d = misc.get_items('tsnvol_d', ts_path, ts_nvol, tsc_d, sc_d)
     
   
 if __name__ == '__main__':

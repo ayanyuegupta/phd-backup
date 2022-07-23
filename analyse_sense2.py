@@ -1,3 +1,4 @@
+from analyse_type import top_scores
 from analyse_sense import spearman_scatter
 import utils.misc as misc
 import scipy.stats as stats
@@ -10,6 +11,7 @@ import os
 import pickle
 
 
+a_s = (10, 15)
 k_range = (2, 10)
 root = '/home/gog/projects/gov_lv'
 data_root = '/media/gog/external2/corpora/gov_corp'
@@ -69,7 +71,7 @@ def get_sc_d(sc_path, years=[2000 + i for i in range(21)]):
     return sc_d
 
 
-def top_scores_tm(tnpmi_y_d, snpmi_y_d, sc_d, min_years=20):
+def top_scores_tm(tnpmi_y_d, snpmi_y_d, sc_d):
 
     categories = list(set([cat for y in tnpmi_y_d for cat in tnpmi_y_d[y]]))
     years = sorted([y for y in tnpmi_y_d])
@@ -79,7 +81,6 @@ def top_scores_tm(tnpmi_y_d, snpmi_y_d, sc_d, min_years=20):
         for w in tqdm(vocab, desc=cat):
             w_senses = [f'{w}_{i}' for i in range(10)]
             for y in years:
-                vocab = list(set([w for w in tnpmi_y_d[y][cat]]))
                 ws_counts = [(s, sc_d[y][s]) for s in w_senses if s in sc_d[y]]
                 if ws_counts != []:
                     mf_s = sorted(ws_counts, key=lambda x: x[1])[-1][0]
@@ -91,6 +92,7 @@ def top_scores_tm(tnpmi_y_d, snpmi_y_d, sc_d, min_years=20):
     return o_lst
 
 
+               
 def main():
     
     #test difference between departmental and legislative fractions of words scoring high M*
@@ -102,9 +104,9 @@ def main():
     with open(f'{to_path}/cby_d.pickle', 'rb') as f_name:
         cby_d = pickle.load(f_name)
     categories = list(set([cat for y in snpmi_y_d for cat in snpmi_y_d[y]])) 
-#    dep, leg = get_leg_dep_m(cby_d, snpmi_y_d, all_years_sc)  
-#    U1, p = mannwhitneyu(dep, leg)
-#    print(p)
+    dep, leg = get_leg_dep_m(cby_d, snpmi_y_d, all_years_sc)  
+    U1, p = mannwhitneyu(dep, leg)
+    print(p)
 
     #correlation between top M* and top T* word level
     with open(f'{to_path}/tnpmi_y_d.pickle', 'rb') as f_name:
@@ -128,12 +130,6 @@ def main():
             X = [snpmi_y_d[year][cat][s] for s in snpmi_y_d[year][cat]]
             y = [snvol_d[year][cat][s] for s in snpmi_y_d[year][cat]]
             spearman_scatter(X, y, f'{path}/{year}_{cat}.png', x_label='$S*$', y_label='$W*$', title=f'{year} {cat}', alpha=0.2)
-
-    #scatter senses' top specificities and volatilities with target senses
-
-       
-
-    
 
 if __name__ == '__main__':
 

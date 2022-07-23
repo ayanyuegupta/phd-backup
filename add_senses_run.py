@@ -13,6 +13,7 @@ def main():
     subprocess.run(['python', 'add_centroids.py'] + as_args)
     subprocess.run(['python', 'add_senses.py'] + as_args)
     subprocess.run(['python', 'add_senses_measures.py'] + as_args)
+    subprocess.run(['python', 'analyse_targets.py'] + as_args)
 
 if __name__ == '__main__':
     main()

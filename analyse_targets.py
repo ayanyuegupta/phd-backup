@@ -1,6 +1,8 @@
+from tqdm import tqdm
+from analyse_sense import spearman_scatter
 import re
 from statsmodels.sandbox.stats.multicomp import multipletests
-from scipy.stats import kruskal, f_oneway, mannwhitneyu
+from scipy.stats import kruskal, ttest_ind, mannwhitneyu
 import argparse
 import seaborn as sns
 import pandas as pd
@@ -66,7 +68,7 @@ def score_heatmap(df, w, path, colours=None):
     plt.savefig(f'{path}/{w}_heatmap.png', bbox_inches='tight')
 
 
-def test_tsenses_kw(w, senses, tsnpmi_y_d, categories, adjust_pvals=True, alpha=0.01, method='bonferroni'):
+def test_tsenses_kw(w, senses, tsnpmi_y_d, categories, adjust_pvals=True, alpha=0.05, method='fdr_bh'):
     
     senses = [s for s in senses if s.split('_')[0] == w]
     p_vals = []
@@ -80,25 +82,86 @@ def test_tsenses_kw(w, senses, tsnpmi_y_d, categories, adjust_pvals=True, alpha=
     if adjust_pvals:
         p_adjusted = multipletests(p_vals, alpha=alpha, method=method)
         kw_d = {s: p_adjusted[1][i] for i, s in enumerate(senses)}
-        kw_df = pd.DataFrame.from_dict(kw_d, orient='index', columns=['adjusted p_values'])
+        kw_df = pd.DataFrame.from_dict(kw_d, orient='index', columns=['adjusted p values'])
     else:
         kw_d = {s: p_vals[i] for i, s in enumerate(senses)}
-        kw_df = pd.DataFrame.from_dict(kw_d, orient='index', columns=['p_values'])
+        kw_df = pd.DataFrame.from_dict(kw_d, orient='index', columns=['p values'])
     
     return kw_df
     
 
-def test_tsenses_u(s, t_cats, tsnpmi_y_d, categories):
+
+def test_tsenses_u(test_lst, tsnpmi_y_d, categories, adjust_pvals=True, alpha=0.01, method='fdr_bh'):
     
-    o_cats = [cat for cat in categories if cat not in t_cats]
-    t_group = [tsnpmi_y_d[y][cat][s] for y in tsnpmi_y_d for cat in t_cats \
-            if s in tsnpmi_y_d[y][cat]]
-    o_group = [tsnpmi_y_d[y][cat][s] for y in tsnpmi_y_d for cat in o_cats \
-            if s in tsnpmi_y_d[y][cat]]
-    U1, p = mannwhitneyu(t_group, o_group)
+    p_vals = []
+    for tpl in test_lst:
+        o_cats = [cat for cat in categories if cat not in tpl[1]]
+        t_group = []
+        o_group = []
+        for s in tpl[0]:
+            t_group += [tsnpmi_y_d[y][cat][s] for y in tsnpmi_y_d for cat in tpl[1] \
+                    if s in tsnpmi_y_d[y][cat]]
+            o_group += [tsnpmi_y_d[y][cat][s] for y in tsnpmi_y_d for cat in o_cats \
+                    if s in tsnpmi_y_d[y][cat]]
+        U1, p = mannwhitneyu(t_group, o_group)
+        p_vals.append(p)
+    if adjust_pvals:
+        p_adjusted = multipletests(p_vals, alpha=alpha, method=method) 
+        u_d = {f'{", ".join(tpl[0])} {", ".join(tpl[1])}': p_adjusted[1][i] for i, tpl in enumerate(test_lst)}
+        u_df = pd.DataFrame.from_dict(u_d, orient='index', columns=['adjusted p values'])
+    else:
+        u_d = {f'{", ".join(tpl[0])} {", ".join(tpl[1])}': p_vals[i] for i, tpl in enumerate(test_lst)}
+        u_df = pd.DataFrame.from_dict(u_d, orient='index', columns=['p values'])
+    
+    return u_df
 
-    print((U1, p))
 
+def scatter_ts_topscores(tsnpmi_y_d, tsnvol_d, snpmi_y_d, snvol_d, sa_path, min_num=260, colours=[[0, 0, 1], [0.5, 0.5, 0.5]], alphas=[0.5, 0.2], x_label='Top $S*$', y_label='Top $W*$', font_size=20, tick_size=15):
+
+    tsenses = []
+    senses = []
+    for y in tsnpmi_y_d:
+        tsenses += [s for cat in tsnpmi_y_d[y] for s in tsnpmi_y_d[y][cat]]
+        senses += [s for cat in snpmi_y_d[y] for s in snpmi_y_d[y][cat]]
+    tsenses = list(set(tsenses))
+    senses =  list(set([s for s in senses if s not in tsenses]))
+    X = []
+    y = []
+    for s in tqdm(senses):
+        specs = [snpmi_y_d[y][cat][s] for y in snpmi_y_d for cat in snpmi_y_d[y] \
+                if s in snpmi_y_d[y][cat]]
+        vols = [snvol_d[y][cat][s] for y in snvol_d for cat in snvol_d[y] \
+                if s in snvol_d[y][cat]]
+        if len(specs) >= min_num and len(vols) >= min_num:
+            X.append(max(specs))
+            y.append(max(vols))
+    plt.figure(figsize=(6, 6))
+    plt.scatter(X, y, color=colours[1], alpha=alphas[1])
+    tX = []
+    ty = []
+    for s in tsenses:
+        specs = [tsnpmi_y_d[y][cat][s] for y in tsnpmi_y_d for cat in tsnpmi_y_d[y] \
+                if s in tsnpmi_y_d[y][cat]]
+        vols = [tsnvol_d[y][cat][s] for y in tsnvol_d for cat in tsnvol_d[y] \
+                if s in tsnpmi_y_d[y][cat]]
+        if specs != [] and vols != []:
+            tX.append(max(specs))
+            ty.append(max(vols))
+    plt.scatter(tX, ty, color=colours[0], alpha=alphas[0])
+    if x_label is not None:
+        plt.xlabel(x_label, fontsize=font_size)
+    if y_label is not None:
+        plt.ylabel(y_label, fontsize=font_size)
+    plt.xticks(fontsize=tick_size)
+    plt.yticks(fontsize=tick_size)
+    plt.savefig(f'{sa_path}/top_ss_sv_all_scatter.png', bbox_inches='tight')
+    
+    spearman_scatter(tX, ty, f'{sa_path}/ts_tops_scatter.png', x_label=x_label, y_label=y_label, font_size=font_size, tick_size=tick_size)
+
+    t_group = [[tX[i], ty[i]] for i, _ in enumerate(tX)]
+    o_group = [[X[i], y[i]] for i, _ in enumerate(X)]
+ 
+    return t_group, o_group
 
 def main():
     
@@ -111,7 +174,14 @@ def main():
         tsnpmi_y_d = pickle.load(f_name)
     with open(f'{so_path}/as_output_{a_s[0]}_{a_s[1]}/tsnvol_d.pickle', 'rb') as f_name:
         tsnvol_d = pickle.load(f_name)
+    with open(f'{so_path}/snpmi_y_d.pickle', 'rb') as f_name:
+        snpmi_y_d = pickle.load(f_name)
+    with open(f'{so_path}/snvol_d.pickle', 'rb') as f_name:
+        snvol_d = pickle.load(f_name)
     
+    #use U-test effect sizes?
+    t_group, o_group = scatter_ts_topscores(tsnpmi_y_d, tsnvol_d, snpmi_y_d, snvol_d, sa_path)
+
     o_path = f'{sa_path}/snpmi_heatmaps/{a_s[0]}_{a_s[1]}'
     if not os.path.exists(o_path):
         os.makedirs(o_path)
@@ -121,11 +191,31 @@ def main():
         df = avg_scores_df(w, d, senses, categories)
         score_heatmap(df, w, o_path)
         kw_df = test_tsenses_kw(w, senses, tsnpmi_y_d, categories)
-        print(kw_df)
+#        print(kw_df)
     
-    test_tsenses_u('sustainability_4', ['treasury'], tsnpmi_y_d, categories)
-    test_tsenses_u('sustainability_5', ['treasury'], tsnpmi_y_d, categories)
-    test_tsenses_u('sustainability_8', ['leg'], tsnpmi_y_d, categories)
+    test_lst = [
+            (['sustainability_4'], ['treasury']),
+            (['sustainability_5'], ['treasury']),
+            (['sustainability_8'], ['leg']),
+            (['resilience_6'], ['DEFRA']),
+            (['resilience_7'], ['DE']),
+            (
+                [
+                'sustainable_6', 
+                'sustainable_5',
+                'sustainable_2'
+                ],
+                [
+                    'DEFRA',
+                    'MOH',
+                    'FCO',
+                    ]
+                ),
+            (['wellbeing_4'], ['DCMS'])
+            ]
+
+    u_df = test_tsenses_u(test_lst, tsnpmi_y_d, categories)
+    print(u_df)
 
 
 if __name__ == '__main__':

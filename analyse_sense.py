@@ -154,7 +154,7 @@ def distinctiveness_lb(w_counts, tnpmi_d, m_d, categories=categories, prop=1, pe
     return distlb_d
         
 
-def spearman_scatter(X, y, path, x_label=None, y_label=None, title=None, font_size=15, tick_size=15, alpha=1, conf_int=0.99):
+def spearman_scatter(X, y, path, x_label=None, y_label=None, title=None, font_size=15, tick_size=15, alpha=1, conf_int=0.99, colour=[0, 0, 1]):
     
     rho, p_val = stats.spearmanr(X, y)
     n = len(X)
@@ -167,7 +167,7 @@ def spearman_scatter(X, y, path, x_label=None, y_label=None, title=None, font_si
             ) 
     plt.rc('font', size=font_size)
     fig = plt.figure(figsize=(6, 6))
-    plt.scatter(X, y, c=np.array([[0, 0, 1]]), alpha=alpha)
+    plt.scatter(X, y, c=np.array([colour]), alpha=alpha)
     plt.xticks(fontsize=tick_size)
     plt.yticks(fontsize=tick_size)
     if x_label is not None:

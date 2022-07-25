@@ -1,3 +1,4 @@
+import numpy as np
 import math
 from tqdm import tqdm
 import measures as m
@@ -58,22 +59,29 @@ def target_rfs(targets, sc_d, tsc_d, a_s):
     return o_d
                          
 
-def plot_sense_rfs(rf_d, path, a_s, min_cdiff=0.6, leg_size=8, n_lcol=3):
+def plot_sense_rfs(targets, rf_d, path, a_s, min_cdiff=0.7, leg_size=15, n_lcol=2, size=(6, 18), font_size=20, tick_size=15, y_label=None):
         
     colours = misc.random_colours(a_s[1], min_diff=min_cdiff)
-    for w in targets:
-        ax = plt.figure().gca()
-        for i, s in enumerate(rf_d[w]):
-            if not all(i == 0 for i in rf_d[w][s]):
-                plot_gam(years, rf_d[w][s], f'{path}/{w}.png', w, colour_label=(colours[i], s), ax=ax, conf_int=False, y_label='Relative Frequency')
-#                plt.plot(years, rf_d[w][s], color=colours[i])
-        handles, labels = plt.gca().get_legend_handles_labels()
-        by_label = OrderedDict(zip(labels, handles))
-        leg = plt.legend(by_label.values(), by_label.keys(), loc='upper left', prop={'size': leg_size}, framealpha=0, ncol=n_lcol)
-        for lh in leg.legendHandles:
-            lh.set_alpha(1)
-            lh.set_sizes([50])
-        plt.savefig(f'{path}/{w}.png', bbox_inches='tight')
+    fig, ax = plt.subplots(len(targets), 1, figsize=size)
+    for i, w in enumerate(targets):
+#        ax = plt.figure(figsize=size).gca()
+        for j, s in enumerate(rf_d[w]):
+            if not all(j == 0 for j in rf_d[w][s]):
+                plot_gam(years, rf_d[w][s], f'{path}/{w}.png', w, colour_label=(colours[j], s.split('_')[1]), ax=ax[i], save=False, conf_int=False, font_size=font_size, tick_size=tick_size)
+#                plt.plot(years, rf_d[w][s], color=colours[i]
+        #        plt.savefig(f'{path}/{w}.png', bbox_inches='tight')
+    if y_label is not None:
+        fig.text(0, 0.5, y_label, ha='center', va='center', rotation='vertical', fontsize=font_size)
+    fig.tight_layout()
+    lines_labels = [a.get_legend_handles_labels() for a in ax]
+    lines, labels = [sum(lol, []) for lol in zip(*lines_labels)]
+    leg = fig.legend(np.unique(labels), loc='upper right', prop={'size': leg_size}, framealpha=1, ncol=n_lcol)
+#    for lh in leg.legendHandles:
+#        lh.set_alpha(1)
+#        lh.set_sizes([50])
+
+    fig.legend
+    plt.savefig(f'{path}/test.png', bbox_inches='tight')
 
 
 def ts_npmi(categories, tsc_yd, sc_yd):
@@ -150,7 +158,7 @@ def main():
     path = f'{sa_path}/rf_plots/{a_s[0]}_{a_s[1]}'
     if not os.path.exists(path):
         os.makedirs(path)
-    plot_sense_rfs(rf_d, path, a_s)
+    plot_sense_rfs(targets, rf_d, path, a_s)
 
     #get spec, vol measures
     tsnpmi_y_d = misc.get_items('tsnpmi_y_d', ts_path, tsnpmi_by_year, tsc_d, sc_d)

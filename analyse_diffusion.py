@@ -43,14 +43,14 @@ categories = [
 'MOJ'
 ]
 
-i_path = f'{os.getcwd()}/t_measures_output_complete'
+i_path = f'{os.getcwd()}/t_measures_output_sample'
 o_path = f'{os.getcwd()}/diffusion_analysis'
 colours = m.random_colours(13)
 
 ####
 
 
-def plot_gam(X, y, save_path, word, size=(6, 3), colour_label=None, x_label=None, y_label=None, custom_xticks=None, rotation=0, ax=None, conf_int=True, alphas=(0.2, 1)):
+def plot_gam(X, y, save_path, word, size=(6, 4), colour_label=None, x_label=None, y_label=None, custom_xticks=None, ax=None, save=True, conf_int=True, alphas=(0.3, 1), font_size=20, tick_size=15, leg_size=9, n_lcol=3, lw=3):
      
     gam = LinearGAM(s(0)).fit(X, y)
 #    print(gam.summary())
@@ -58,26 +58,30 @@ def plot_gam(X, y, save_path, word, size=(6, 3), colour_label=None, x_label=None
         ax = plt.figure(figsize=size).gca()
     if colour_label is None:
         ax.scatter(X, y, color=np.array([[0, 0, 1]]), s=10, alpha=alphas[0])
-        ax.plot(X, gam.predict(X), color=np.array([1, 0, 1]), alpha=alphas[1])
+        ax.plot(X, gam.predict(X), linewidth=lw, color=np.array([0, 0, 1]), alpha=alphas[1])
     else:
         ax.scatter(X, y, label=colour_label[1], color=np.array([colour_label[0]]), s=10, alpha=alphas[0])
-        ax.plot(X, gam.predict(X), label=colour_label[1], color=np.array(colour_label[0]), alpha=alphas[1])
+        ax.plot(X, gam.predict(X), linewidth=lw, label=colour_label[1], color=np.array(colour_label[0]), alpha=alphas[1])
     if conf_int:
-        ax.plot(X, gam.confidence_intervals(X), color=np.array([1, 0, 1]), ls='--')
+        ax.plot(X, gam.confidence_intervals(X), color=np.array([0, 0, 1]), ls='--')
     ax.xaxis.get_major_locator().set_params(integer=True)
-    plt.title(word)
-    plt.xticks(rotation=rotation, ha='right')
+    ax.yaxis.offsetText.set_fontsize(tick_size)
+    ax.set_title(word, fontsize=font_size)
+    ax.ticklabel_format(axis='y', style='sci', scilimits=(0, 0))
+    ax.tick_params(axis='both', which='major', labelsize=tick_size)
+#    ax.set_xticks(fontsize=tick_size)
+#    ax.set_yticks(fontsize=tick_size)
     if x_label is not None:
-        plt.xlabel(x_label)
+        ax.set_xlabel(x_label, fontsize=font_size)
     if y_label is not None:
-        plt.ylabel(y_label)
+        ax.set_ylabel(y_label, fontsize=font_size)
     if custom_xticks is not None:
         xt = ax.get_xticks()[1:-1]
         ax.set_xticks(xt)
         custom_xticks = [custom_xticks[int(i)] for i in xt]
         ax.set_xticklabels(custom_xticks)
     
-    if ax is None:
+    if save:
         plt.savefig(f'{save_path}/{word}.png', bbox_inches='tight')
 
 
@@ -101,33 +105,12 @@ def get_rf(d, word, categories=None):
 
     return v_d, catv_d
 
-
-def plot_cat_rfs(catv_d, o_path, word, colours=None, categories=None, size=(6, 6)):
-
-    if categories is None:
-        categories = list(set([cat for y in catv_d for cat in catv_d[y]]))
-    ax = plt.figure(figsize=size).gca()
-    if colours is None:
-        colours = m.random_colours(len(categories))
-    for i, cat in enumerate(categories):
-        data = [(y, catv_d[y][cat]) for y in catv_d if catv_d[y][cat] is not None]
-        X = [y for y, _ in data]
-        y = [val for _, val in data]
-        plot_gam(X, y, o_path, word, ax=ax, colour_label=(colours[i], cat), conf_int=False, alphas=(0.5, 1)) 
-    handles, labels = plt.gca().get_legend_handles_labels()
-    by_label = OrderedDict(zip(labels, handles))
-    leg = plt.legend(by_label.values(), by_label.keys(), loc='upper left', prop={'size': 8}, framealpha=0, ncol=1)
-    for lh in leg.legendHandles:
-        lh.set_alpha(1)
-        lh.set_sizes([50])
-
-    plt.savefig(f'{o_path}/{word}.png', bbox_inches='tight') 
-
-          
+         
 def main():
     
     colours = m.random_colours(len(categories))
-    for word in words:
+    fig, ax = plt.subplots(len(words), 1, figsize=(6, 18))
+    for i, word in enumerate(words):
 
         #relative frequencies
         if not os.path.exists(o_path):
@@ -148,9 +131,11 @@ def main():
             os.makedirs(path)
         y = np.array([rf[y] for y in rf])
         X = np.array([y for y in rf])
-        plot_gam(X, y, gam_path1, word, y_label='Relative Frequency')
-        plot_cat_rfs(cat_rfs, path, word, colours=colours, categories=categories)
-
+        plot_gam(X, y, gam_path1, word, ax=ax[i], save=False)
+    
+    fig.text(0, 0.5, 'Relative Frequency', ha='center', va='center', rotation='vertical', fontsize=20)
+    fig.tight_layout()
+    plt.savefig(f'{gam_path1}/test.png', bbox_inches='tight')
 
 if __name__ == '__main__':
     main()

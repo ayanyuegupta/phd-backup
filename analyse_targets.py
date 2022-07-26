@@ -1,3 +1,4 @@
+from analyse_type import average_wscores, bar_chart_words
 from tqdm import tqdm
 from analyse_sense import spearman_scatter
 import re
@@ -13,11 +14,20 @@ import pickle
 import os
 
 
+targets = [
+        'resilience',
+        'resilient',
+        'sustainable',
+        'sustainability',
+        'wellbeing'
+        ]
 k_range = (2, 10)
 root = '/home/gog/projects/gov_lv'
 data_root = '/media/gog/external2/corpora/gov_corp'
 so_path = f'{root}/s_measures_output_{k_range[0]}_{k_range[1]}'
 sa_path = f'{root}/sense_analysis'
+to_path = f'{root}/t_measures_output_sample'
+ta_path = f'{root}/type_analysis'
 
 
 def natural_key(string_):
@@ -163,12 +173,37 @@ def scatter_ts_topscores(tsnpmi_y_d, tsnvol_d, snpmi_y_d, snvol_d, sa_path, min_
  
     return t_group, o_group
 
+
+def bar_charts(targets, tnpmi_d, o_path, size=(6, 18), y_label=None, font_size=20, tick_size=15):
+
+    fig, ax = plt.subplots(len(targets), 1, figsize=size)
+    for i, w in enumerate(targets):
+        x = sorted([cat for cat in tnpmi_d])
+        y = [tnpmi_d[cat][w] for cat in x]
+        x = [cat.split('_')[0] if '_' in cat else cat for cat in x]
+        ax[i].bar(x, y, color=[0, 0, 1])
+        ax[i].set_title(w, fontsize=font_size)
+        ax[i].ticklabel_format(axis='y', style='sci', scilimits=(0, 0))
+        ax[i].tick_params(axis='both', which='major', labelsize=tick_size, labelrotation=90)
+        ax[i].yaxis.offsetText.set_fontsize(tick_size)
+    if y_label is not None:
+        fig.text(0, 0.5, y_label, ha='center', va='center', rotation='vertical', fontsize=font_size)
+    fig.tight_layout()
+    plt.savefig(f'{o_path}/target_bar_charts.png', bbox_inches='tight')
+
+
 def main():
     
     parser = argparse.ArgumentParser()
     parser.add_argument('-a_s', '-additional_senses', required=True)
     args = parser.parse_args()
     a_s = [int(v) for v in args.a_s.split('-')]
+
+    with open(f'{to_path}/tnpmi_y_d.pickle', 'rb') as f_name:
+        tnpmi_y_d = pickle.load(f_name)
+    o_path = f'{ta_path}/bar_charts'
+    tnpmi_d = average_wscores(tnpmi_y_d)
+    bar_charts(targets, tnpmi_d, o_path, y_label='Average $T*$')
 
     with open(f'{so_path}/as_output_{a_s[0]}_{a_s[1]}/tsnpmi_y_d.pickle', 'rb') as f_name:
         tsnpmi_y_d = pickle.load(f_name)

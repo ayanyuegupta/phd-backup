@@ -78,7 +78,7 @@ def score_heatmap(df, w, path, colours=None):
     plt.savefig(f'{path}/{w}_heatmap.png', bbox_inches='tight')
 
 
-def test_tsenses_kw(w, senses, tsnpmi_y_d, categories, adjust_pvals=True, alpha=0.05, method='fdr_bh'):
+def test_tscat_kw(w, senses, tsnpmi_y_d, categories, adjust_pvals=True, alpha=0.05, method='fdr_bh'):
     
     senses = [s for s in senses if s.split('_')[0] == w]
     p_vals = []
@@ -97,11 +97,20 @@ def test_tsenses_kw(w, senses, tsnpmi_y_d, categories, adjust_pvals=True, alpha=
         kw_d = {s: p_vals[i] for i, s in enumerate(senses)}
         kw_df = pd.DataFrame.from_dict(kw_d, orient='index', columns=['p values'])
     
-    return kw_df
+    return kw_df 
+
+
+def test_tsfreq_kw(w, rf_d, years):
     
+    all_years = {y: i for i, y in enumerate([2000 + i for i in range(21)])}
+    groups = [rf_d[w][s][all_years[years[0]]: all_years[years[-1]]] for s in rf_d[w]]
+    print(groups)
+    print([rf_d[w][s] for s in rf_d[w]])
+    H, p = kruskal(*groups)
 
+    return H, p
 
-def test_tsenses_u(test_lst, tsnpmi_y_d, categories, adjust_pvals=True, alpha=0.01, method='fdr_bh'):
+def test_tscat_u(test_lst, tsnpmi_y_d, categories, adjust_pvals=True, alpha=0.01, method='fdr_bh'):
     
     p_vals = []
     for tpl in test_lst:
@@ -124,6 +133,21 @@ def test_tsenses_u(test_lst, tsnpmi_y_d, categories, adjust_pvals=True, alpha=0.
         u_df = pd.DataFrame.from_dict(u_d, orient='index', columns=['p values'])
     
     return u_df
+
+
+def test_ts_u(targets, snpmi_y_d):
+    
+    categories = list(set([cat for y in snpmi_y_d for cat in snpmi_y_d[y]]))
+    t_group = [snpmi_y_d[y][targets[1]][targets[0]] for y in snpmi_y_d \
+            if targets[0] in snpmi_y_d[y][targets[1]]]
+    o_group = []
+    for cat in categories:
+        if cat != targets[1]:
+            o_group += [snpmi_y_d[y][cat][targets[0]] for y in snpmi_y_d \
+                    if targets[0] in snpmi_y_d[y][cat]]
+    U1, p = mannwhitneyu(t_group, o_group)
+    
+    return U1, p
 
 
 def scatter_ts_topscores(tsnpmi_y_d, tsnvol_d, snpmi_y_d, snvol_d, sa_path, min_num=260, colours=[[0, 0, 1], [0.5, 0.5, 0.5]], alphas=[0.5, 0.2], x_label='Top $S*$', y_label='Top $W*$', font_size=20, tick_size=15):
@@ -215,7 +239,7 @@ def main():
         snvol_d = pickle.load(f_name)
     
     #use U-test effect sizes?
-    t_group, o_group = scatter_ts_topscores(tsnpmi_y_d, tsnvol_d, snpmi_y_d, snvol_d, sa_path)
+#    t_group, o_group = scatter_ts_topscores(tsnpmi_y_d, tsnvol_d, snpmi_y_d, snvol_d, sa_path)
 
     o_path = f'{sa_path}/snpmi_heatmaps/{a_s[0]}_{a_s[1]}'
     if not os.path.exists(o_path):
@@ -225,7 +249,7 @@ def main():
     for w in vocab:
         df = avg_scores_df(w, d, senses, categories)
         score_heatmap(df, w, o_path)
-        kw_df = test_tsenses_kw(w, senses, tsnpmi_y_d, categories)
+        kw_df = test_tscat_kw(w, senses, tsnpmi_y_d, categories)
 #        print(kw_df)
     
     test_lst = [
@@ -249,9 +273,18 @@ def main():
             (['wellbeing_4'], ['DCMS'])
             ]
 
-    u_df = test_tsenses_u(test_lst, tsnpmi_y_d, categories)
+    u_df = test_tscat_u(test_lst, tsnpmi_y_d, categories)
     print(u_df)
 
+    #test differences in specificities of one sense across two groups of categories
+    U1, p = test_ts_u(('resilience_3', 'cabinet'), tsnpmi_y_d)        
+    print(U1, p)
+    
+    ts_path = f'{so_path}/as_output_{a_s[0]}_{a_s[1]}'
+    with open(f'{ts_path}/rf_d.pickle', 'rb') as f_name:
+        rf_d = pickle.load(f_name) 
+    H, p = test_tsfreq_kw('resilience', rf_d, [2015 + i for i in range(6)])
+    print(H, p)
 
 if __name__ == '__main__':
     main()

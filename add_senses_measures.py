@@ -150,7 +150,7 @@ def main():
     tsc_d, sc_d = misc.get_items(['tsc_d', 'sc_d'], ts_path, get_counts, so_path, ts_path, years)
 
     #relative frequencies
-    rf_d = target_rfs(targets, sc_d, tsc_d, a_s)
+    rf_d = misc.get_items('rf_d', ts_path, target_rfs, targets, sc_d, tsc_d, a_s)
     path = f'{sa_path}/rf_plots/{a_s[0]}_{a_s[1]}'
     if not os.path.exists(path):
         os.makedirs(path)

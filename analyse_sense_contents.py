@@ -92,7 +92,7 @@ def extract_topn_from_vector(feature_names, sorted_items, topn):
 
 
 #https://github.com/matejMartinc/scalable_semantic_shift/blob/a105c8409db0996c99f0df11d40c35017eb3337c/interpretation.py#L85
-def sense_keywords(d, o_path, re_pattern='[^a-zA-Z. ]', max_df=0.8, topn=10, add_stopwords=['yes', 'no', 'yesno']):
+def sense_keywords(d, o_path, re_pattern='[^a-zA-Z. ]', max_df=0.8, topn=10, ngram_range=(1, 3), add_stopwords=['yes', 'no', 'yesno']):
     
     regex = re.compile(re_pattern)
     sp = spacy.load('en_core_web_sm')
@@ -107,7 +107,7 @@ def sense_keywords(d, o_path, re_pattern='[^a-zA-Z. ]', max_df=0.8, topn=10, add
             doc = ''.join([tpl[1] for tpl in d[w][s]]).lower()
             doc = ' '.join(regex.sub('', doc).split())
             clusters.append(doc)
-        tfidf_transformer = TfidfVectorizer(smooth_idf=True, use_idf=True, ngram_range=(1,2), max_df=max_df, stop_words=stopwords, max_features=10000)
+        tfidf_transformer = TfidfVectorizer(smooth_idf=True, use_idf=True, ngram_range=ngram_range, max_df=max_df, stop_words=stopwords, max_features=10000)
         tfidf_transformer.fit(clusters)
         feature_names = tfidf_transformer.get_feature_names()
         kw_d[w] = {}
@@ -118,12 +118,14 @@ def sense_keywords(d, o_path, re_pattern='[^a-zA-Z. ]', max_df=0.8, topn=10, add
             keywords = extract_topn_from_vector(feature_names, sorted_items, topn*5)
             keywords = sorted(keywords.items(), key=lambda x: x[1], reverse=True)
             keywords = [x[0] for x in keywords]
-            #filter unigrams that appear in bigrams and remove duplicates
-            all_bigrams = " ".join([kw for kw in keywords if len(kw.split()) == 2])
+            #filter unigrams that appear in ngrams and remove duplicates
+            all_ngrams = " ".join([kw for kw in keywords if len(kw.split()) > 1])
             already_in = set()
             filtered_keywords = []
             for kw in keywords:
-                if len(kw.split()) == 1 and kw in all_bigrams:
+                if len(kw.split()) < ngram_range[1] and kw in all_ngrams:
+                    continue
+                elif len(set(kw.split())) < len(kw.split()):
                     continue
                 else:
                     if kw not in already_in and kw != w:
@@ -137,7 +139,7 @@ def sense_keywords(d, o_path, re_pattern='[^a-zA-Z. ]', max_df=0.8, topn=10, add
     o_path = f'{o_path}/sense_keywords'
     if not os.path.exists(o_path):
         os.makedirs(o_path)
-    kw_df.to_csv(f'{o_path}/keywords.csv')
+    kw_df.to_csv(f'{o_path}/keywords_ngram_range={ngram_range[0]}_{ngram_range[1]}.csv')
 
     return kw_df
 

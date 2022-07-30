@@ -31,55 +31,6 @@ bert_dim = 768
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-def see_senses(targets, c_path, d_path, o_path, a_s=None):
-    
-    d = {w: [] for w in targets}
-    years = [y.split('.')[0] for y in os.listdir(d_path) if any(char.isdigit() for char in y)]
-    for y in years:
-        with open(f'{d_path}/{y}.pickle', 'rb') as f_name:
-            data = pickle.load(f_name)
-        if a_s is None:
-            sense_path = f'{c_path}/{y}_senses/senses'
-        else:
-            sense_path = f'{c_path}/{y}_senses/added_senses_{a_s[0]}_{a_s[1]}'
-        with open(sense_path, 'r') as f_name:
-            senses = f_name.read()
-        senses = senses.split('\n')
-        senses = (s.split('\t') for s in senses if len(s) > 1 and any(s.split('\t')[1] == w for w in targets)) 
-        for s in senses:
-            location = s[0].split('_')
-            cat = location[:-2]
-            if len(cat) > 1:
-                cat = '_'.join(cat)
-            else:
-                cat = cat[0]
-            index = int(location[-1])
-            word = s[1]
-            sense = s[2]
-            d[word].append((sense, data[cat][index]))
-    d2 = {w: None for w in targets}
-    for w in d:
-        senses = [tpl[0] for tpl in d[w]]
-        d2[w] = {sense: [] for sense in senses}
-        for tpl in d[w]:
-            sense = tpl[0]
-            d2[w][sense].append(tpl[1])
-    d = d2
-    seq_path = f'{o_path}/sense_seq'
-    if not os.path.exists(seq_path):
-        os.makedirs(seq_path)
-    for w in d:
-        if a_s is None:
-            o_path = f'{seq_path}/{w}.txt'
-        else:
-            o_path = f'{seq_path}/{w}_{a_s[0]}_{a_s[1]}.txt'
-        with open(o_path, 'w') as f_name:
-            for s in d[w]:
-                f_name.write(f'\n\n')
-                for seq in d[w][s]:
-                    f_name.write(f'\n~{s}: {seq[1]}, {seq[0]}')
-
-
 def main():
 
     parser = argparse.ArgumentParser()
@@ -111,9 +62,8 @@ def main():
         #OR SENSES FROM INITIAL WSI RUN WILL BE DELETED AND REPLACED BY ADDITIONAL SENSES
         model.get_embeddings_and_match(batched_data, batched_words, batched_masks, batched_users, centroids_d, s_path, added_centroids=a_s)
 
-    see_senses(targets, c_path, data_path, sa_path, a_s=a_s)
-
+#    d = see_senses(targets, c_path, data_path, sa_path, a_s=a_s)
+#    sense_keywords(d)
 
 if __name__ == '__main__':
-
     main()

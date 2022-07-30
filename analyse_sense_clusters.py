@@ -1,3 +1,4 @@
+import itertools
 import pandas as pd
 import spacy
 import re
@@ -92,7 +93,7 @@ def extract_topn_from_vector(feature_names, sorted_items, topn):
 
 
 #https://github.com/matejMartinc/scalable_semantic_shift/blob/a105c8409db0996c99f0df11d40c35017eb3337c/interpretation.py#L85
-def sense_keywords(d, o_path, re_pattern='[^a-zA-Z. ]', max_df=0.8, topn=10, ngram_range=(1, 3), add_stopwords=['yes', 'no', 'yesno']):
+def sense_keywords(d, o_path, re_pattern='[^a-zA-Z. ]', max_df=0.8, mf_prop=1, topn=10, ngram_range=(1, 2), add_stopwords=['yes', 'no', 'yesno'], stopdocs=['Control_Room']):
     
     regex = re.compile(re_pattern)
     sp = spacy.load('en_core_web_sm')
@@ -104,10 +105,13 @@ def sense_keywords(d, o_path, re_pattern='[^a-zA-Z. ]', max_df=0.8, topn=10, ngr
         senses = sorted([s for s in d[w]])
         clusters = []
         for s in senses:
-            doc = ''.join([tpl[1] for tpl in d[w][s]]).lower()
-            doc = ' '.join(regex.sub('', doc).split())
+            doc = ''.join([tpl[1] for tpl in d[w][s] if not any(item in tpl[0] for item in stopdocs)]).lower()
+            doc = regex.sub('', doc).split()
             clusters.append(doc)
-        tfidf_transformer = TfidfVectorizer(smooth_idf=True, use_idf=True, ngram_range=ngram_range, max_df=max_df, stop_words=stopwords, max_features=10000)
+        vocab = list(itertools.chain.from_iterable(clusters))
+        v_size = len(set([w for w in vocab if w not in stopwords]))
+        clusters = [' '.join(c) for c in clusters]
+        tfidf_transformer = TfidfVectorizer(smooth_idf=True, use_idf=True, ngram_range=ngram_range, max_df=max_df, max_features=int(mf_prop * v_size), stop_words=stopwords)
         tfidf_transformer.fit(clusters)
         feature_names = tfidf_transformer.get_feature_names()
         kw_d[w] = {}

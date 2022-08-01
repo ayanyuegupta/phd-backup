@@ -75,7 +75,7 @@ def plot_sense_rfs(targets, rf_d, path, a_s, min_cdiff=0.7, leg_size=15, n_lcol=
     fig.tight_layout()
     lines_labels = [a.get_legend_handles_labels() for a in ax]
     lines, labels = [sum(lol, []) for lol in zip(*lines_labels)]
-    leg = fig.legend(np.unique(labels), loc='upper right', prop={'size': leg_size}, framealpha=1, ncol=n_lcol)
+    leg = fig.legend(np.unique(labels), loc='upper right', prop={'size': leg_size}, framealpha=1, ncol=n_lcol, title='Sense', title_fontsize=leg_size)
 
     plt.savefig(f'{path}/test.png', bbox_inches='tight')
 

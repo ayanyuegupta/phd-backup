@@ -93,7 +93,7 @@ def extract_topn_from_vector(feature_names, sorted_items, topn):
 
 
 #https://github.com/matejMartinc/scalable_semantic_shift/blob/a105c8409db0996c99f0df11d40c35017eb3337c/interpretation.py#L85
-def sense_keywords(d, o_path, re_pattern='[^a-zA-Z. ]', max_df=0.8, mf_prop=1, topn=10, ngram_range=(1, 2), add_stopwords=['yes', 'no', 'yesno'], stopdocs=['Control_Room']):
+def sense_keywords(d, o_path, re_pattern='[^a-zA-Z\'.\-’ ]', max_df=0.8, mf_prop=1, topn=10, ngram_range=(1, 2), add_stopwords=None, stopdocs=None):
     
     regex = re.compile(re_pattern)
     sp = spacy.load('en_core_web_sm')
@@ -159,7 +159,11 @@ def main():
         a_s = args.a_s
 
     d = see_senses(targets, c_path, data_path, sa_path, a_s=a_s)
-    kw_df = sense_keywords(d, sa_path)
+    stopsent = 'Type of testing undertaken  Results in Evidence Base  Results annexed  Competition Assessment  Yes  No  Small Firms Impact Test  Yes  No  Legal Aid  Yes  No  Sustainable Development  No  No  Carbon Assessment  No  No  Other Environment  No  No  Health Impact Assessment  Yes  No  Race Equality  Yes  No  Disability Equality  Yes  No  Gender Equality  Yes  No  Human Rights  Yes  No  Rural Proofing  Yes  No'.lower().split()
+    stopsent = [w for w in stopsent if w != 'sustainable' and w != 'health']
+    add_stopwords = ['yes', 'no', 'yesno', 'swe', 'du', 'police', 'force', 'forces', 'boards', 'people'] + stopsent
+    stopdocs=['Control_Room', 'sdsfeb04-', 'Annual_Report']
+    kw_df = sense_keywords(d, sa_path, add_stopwords=add_stopwords, stopdocs=stopdocs)
 
 if __name__ == '__main__':
     main()

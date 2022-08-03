@@ -1,3 +1,4 @@
+import numpy as np
 from analyse_type import average_wscores, bar_chart_words
 from tqdm import tqdm
 from analyse_sense import spearman_scatter
@@ -104,8 +105,6 @@ def test_tsfreq_kw(w, rf_d, years):
     
     all_years = {y: i for i, y in enumerate([2000 + i for i in range(21)])}
     groups = [rf_d[w][s][all_years[years[0]]: all_years[years[-1]]] for s in rf_d[w]]
-    print(groups)
-    print([rf_d[w][s] for s in rf_d[w]])
     H, p = kruskal(*groups)
 
     return H, p
@@ -216,6 +215,23 @@ def bar_charts(targets, tnpmi_d, o_path, size=(6, 18), y_label=None, font_size=2
     plt.savefig(f'{o_path}/target_bar_charts.png', bbox_inches='tight')
 
 
+#https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.mannwhitneyu.html#r31b0b1c0fec3-4
+def utest_zscore(U, nx, ny):
+    
+    N = nx + ny
+    z = (U - nx * ny / 2 + 0.5) / np.sqrt(nx * ny * (N + 1) / 12)
+    
+    return z, N
+
+
+def effect_size(z, N):
+
+    r = abs(z) / np.sqrt(N)
+    print(r)
+
+    return r
+
+
 def main():
     
     parser = argparse.ArgumentParser()
@@ -238,9 +254,30 @@ def main():
     with open(f'{so_path}/snvol_d.pickle', 'rb') as f_name:
         snvol_d = pickle.load(f_name)
     
-    #use U-test effect sizes?
-#    t_group, o_group = scatter_ts_topscores(tsnpmi_y_d, tsnvol_d, snpmi_y_d, snvol_d, sa_path)
+    #get U-test effect sizes
+    t_group, o_group = scatter_ts_topscores(tsnpmi_y_d, tsnvol_d, snpmi_y_d, snvol_d, sa_path)   
+    #spec
+    t = [lst[0] for lst in t_group]
+    o = [lst[0] for lst in o_group]
+    U1, p = mannwhitneyu(t, o)
+    print(p)
+    nx, ny = len(t), len(o)
+    U2 = nx*ny - U1
+    U = min(U1, U2)
+    z, N = utest_zscore(U, nx, ny)
+    r = effect_size(z, N)
+    #vol
+    t = [lst[1] for lst in t_group]
+    o = [lst[1] for lst in o_group]
+    U1, p = mannwhitneyu(t, o)
+    print(p)
+    nx, ny = len(t), len(o)
+    U2 = nx*ny - U1
+    U = min(U1, U2)
+    z, N = utest_zscore(U, nx, ny)
+    r = effect_size(z, N)
 
+    #heatmaps
     o_path = f'{sa_path}/snpmi_heatmaps/{a_s[0]}_{a_s[1]}'
     if not os.path.exists(o_path):
         os.makedirs(o_path)

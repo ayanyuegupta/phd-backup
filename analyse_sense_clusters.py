@@ -161,7 +161,7 @@ def main():
     d = see_senses(targets, c_path, data_path, sa_path, a_s=a_s)
     stopsent = 'Type of testing undertaken  Results in Evidence Base  Results annexed  Competition Assessment  Yes  No  Small Firms Impact Test  Yes  No  Legal Aid  Yes  No  Sustainable Development  No  No  Carbon Assessment  No  No  Other Environment  No  No  Health Impact Assessment  Yes  No  Race Equality  Yes  No  Disability Equality  Yes  No  Gender Equality  Yes  No  Human Rights  Yes  No  Rural Proofing  Yes  No'.lower().split()
     stopsent = [w for w in stopsent if w != 'sustainable' and w != 'health']
-    add_stopwords = ['yes', 'no', 'yesno', 'swe', 'du', 'police', 'force', 'forces', 'boards', 'people'] + stopsent
+    add_stopwords = ['yes', 'no', 'yesno', 'swe', 'du', 'police', 'force', 'forces', 'boards', 'people', 'work'] + stopsent
     stopdocs=['Control_Room', 'sdsfeb04-', 'Annual_Report']
     kw_df = sense_keywords(d, sa_path, add_stopwords=add_stopwords, stopdocs=stopdocs)
 

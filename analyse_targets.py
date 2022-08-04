@@ -224,12 +224,20 @@ def utest_zscore(U, nx, ny):
     return z, N
 
 
-def effect_size(z, N):
+def rosenthal_corr(z, N):
 
     r = abs(z) / np.sqrt(N)
-    print(r)
+    print(f'Rosenthal correlation: {r}')
 
     return r
+
+
+def common_lang(U1, nx, ny):
+    
+    f = U1 / (nx * ny)
+    print(f'Common language: {f}')
+
+    return f
 
 
 def main():
@@ -257,25 +265,34 @@ def main():
     #get U-test effect sizes
     t_group, o_group = scatter_ts_topscores(tsnpmi_y_d, tsnvol_d, snpmi_y_d, snvol_d, sa_path)   
     #spec
-    t = [lst[0] for lst in t_group]
-    o = [lst[0] for lst in o_group]
-    U1, p = mannwhitneyu(t, o)
+    ts = [lst[0] for lst in t_group]
+    os = [lst[0] for lst in o_group]
+    U1, p = mannwhitneyu(ts, os)
     print(p)
-    nx, ny = len(t), len(o)
+    print((np.average(ts), np.average(os)))
+    #rosenthal correlation
+    nx, ny = len(ts), len(os)
     U2 = nx*ny - U1
     U = min(U1, U2)
     z, N = utest_zscore(U, nx, ny)
-    r = effect_size(z, N)
+    r = rosenthal_corr(z, N)
+    #common language
+    f = common_lang(U1, nx, ny)
+    
     #vol
-    t = [lst[1] for lst in t_group]
-    o = [lst[1] for lst in o_group]
-    U1, p = mannwhitneyu(t, o)
+    tv = [lst[1] for lst in t_group]
+    ov = [lst[1] for lst in o_group]
+    U1, p = mannwhitneyu(tv, ov)
     print(p)
-    nx, ny = len(t), len(o)
+    print((np.average(tv), np.average(ov)))
+    #rosenthal correlation
+    nx, ny = len(tv), len(ov)
     U2 = nx*ny - U1
     U = min(U1, U2)
     z, N = utest_zscore(U, nx, ny)
-    r = effect_size(z, N)
+    r = rosenthal_corr(z, N)
+    #common language
+    f = common_lang(U1, nx, ny)
 
     #heatmaps
     o_path = f'{sa_path}/snpmi_heatmaps/{a_s[0]}_{a_s[1]}'

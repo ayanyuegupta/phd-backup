@@ -240,6 +240,23 @@ def common_lang(U1, nx, ny):
     return f
 
 
+def top_sscores_esizes_utest(t_g, o_g):
+    
+    U1, p = mannwhitneyu(t_g, o_g)
+    print((np.median(t_g), np.median(o_g)))
+    print(p)
+    #rosenthal correlation
+    nx, ny = len(t_g), len(o_g)
+    U2 = nx*ny - U1
+    U = min(U1, U2)
+    z, N = utest_zscore(U, nx, ny)
+    r = rosenthal_corr(z, N)
+    #common language
+    f = common_lang(U1, nx, ny)
+    
+    return p
+
+
 def main():
     
     parser = argparse.ArgumentParser()
@@ -262,45 +279,32 @@ def main():
     with open(f'{so_path}/snvol_d.pickle', 'rb') as f_name:
         snvol_d = pickle.load(f_name)
     
-    #get U-test effect sizes
+    #scatter top scores and get U-test effect sizes
     t_group, o_group = scatter_ts_topscores(tsnpmi_y_d, tsnvol_d, snpmi_y_d, snvol_d, sa_path)   
+    p_vals = []
     #specs
     t_s = [lst[0] for lst in t_group]
     o_s = [lst[0] for lst in o_group]
-    
-    p_vals = []
-    U1, p = mannwhitneyu(t_s, o_s)
-    print(p)
-    p_vals.append(p)
-    print((np.average(t_s), np.average(o_s)))
-    #rosenthal correlation
-    nx, ny = len(t_s), len(o_s)
-    U2 = nx*ny - U1
-    U = min(U1, U2)
-    z, N = utest_zscore(U, nx, ny)
-    r = rosenthal_corr(z, N)
-    #common language
-    f = common_lang(U1, nx, ny)
-    
+    p_vals.append(top_sscores_esizes_utest(t_s, o_s))
     #vol
     t_v = [lst[1] for lst in t_group]
     o_v = [lst[1] for lst in o_group]
-    U1, p = mannwhitneyu(t_v, o_v)
-    print(p)
-    p_vals.append(p)
-    print((np.average(t_v), np.average(o_v)))
-    #rosenthal correlation
-    nx, ny = len(t_v), len(o_v)
-    U2 = nx*ny - U1
-    U = min(U1, U2)
-    z, N = utest_zscore(U, nx, ny)
-    r = rosenthal_corr(z, N)
-    #common language
-    f = common_lang(U1, nx, ny)
-    
+    p_vals.append(top_sscores_esizes_utest(t_v, o_v))   
     #adjust p-vals
-    p_adjusted = multipletests(p_vals, alpha=0.01, method='fdr_bh')
+    p_adjusted = multipletests(p_vals, alpha=0.01, method='fdr_bh')    
     print(f'adjusted p-values: \n{p_adjusted}')
+    
+    #test target vocab tnpmis leg vs dep
+    with open(f'{to_path}/tnpmi_y_d.pickle', 'rb') as f_name:
+        tnpmi_y_d = pickle.load(f_name)
+    l_ts = [tnpmi_y_d[y]['leg'][w] for y in tnpmi_y_d for w in targets if w in tnpmi_y_d[y]['leg']]
+    deps = list(set([cat for y in tnpmi_y_d for cat in tnpmi_y_d[y] if cat != 'leg']))
+    d_ts = []
+    for cat in deps:
+        d_ts += [tnpmi_y_d[y][cat][w] for y in tnpmi_y_d for w in targets if w in tnpmi_y_d[y][cat]]
+    U1, p = mannwhitneyu(l_ts, d_ts)
+    print((U1, p))
+    print((np.median(l_ts), np.median(d_ts)))
 
     #heatmaps
     o_path = f'{sa_path}/snpmi_heatmaps/{a_s[0]}_{a_s[1]}'

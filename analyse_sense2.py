@@ -3,8 +3,8 @@ from analyse_sense import spearman_scatter
 import utils.misc as misc
 import scipy.stats as stats
 import math
-import analyse_type as a_t
-import analyse_sense as a_s
+import analyse_type as at
+#import analyse_sense as as
 from tqdm import tqdm
 from scipy.stats import kruskal, f_oneway, mannwhitneyu
 import os
@@ -115,8 +115,7 @@ def main():
     tm_tpls = misc.get_items('tm', sa_path, top_scores_tm, tnpmi_y_d, snpmi_y_d, sc_d)
     X = [tpl[1][0] for tpl in tm_tpls]
     y = [tpl[1][1] for tpl in tm_tpls]
-    rho, p_val, c_i = a_s.spearman_scatter(X, y, f'{sa_path}/corr_tm.png', font_size=20, alpha=0.1, x_label='$T*$', y_label='$M_t*$')
-    print(c_i)
+    print(stats.spearmanr(X, y))
 
     #scatter sense specificities and volatilies
     with open(f'{so_path}/snvol_d.pickle', 'rb') as f_name:

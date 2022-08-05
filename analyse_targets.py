@@ -219,7 +219,7 @@ def bar_charts(targets, tnpmi_d, o_path, size=(6, 18), y_label=None, font_size=2
 def utest_zscore(U, nx, ny):
     
     N = nx + ny
-    z = (U - nx * ny / 2 + 0.5) / np.sqrt(nx * ny * (N + 1) / 12)
+    z = (U - (nx * ny) / 2 + 0.5) / np.sqrt(nx * ny * (N + 1) / 12)
     
     return z, N
 
@@ -264,14 +264,17 @@ def main():
     
     #get U-test effect sizes
     t_group, o_group = scatter_ts_topscores(tsnpmi_y_d, tsnvol_d, snpmi_y_d, snvol_d, sa_path)   
-    #spec
-    ts = [lst[0] for lst in t_group]
-    os = [lst[0] for lst in o_group]
-    U1, p = mannwhitneyu(ts, os)
+    #specs
+    t_s = [lst[0] for lst in t_group]
+    o_s = [lst[0] for lst in o_group]
+    
+    p_vals = []
+    U1, p = mannwhitneyu(t_s, o_s)
     print(p)
-    print((np.average(ts), np.average(os)))
+    p_vals.append(p)
+    print((np.average(t_s), np.average(o_s)))
     #rosenthal correlation
-    nx, ny = len(ts), len(os)
+    nx, ny = len(t_s), len(o_s)
     U2 = nx*ny - U1
     U = min(U1, U2)
     z, N = utest_zscore(U, nx, ny)
@@ -280,19 +283,24 @@ def main():
     f = common_lang(U1, nx, ny)
     
     #vol
-    tv = [lst[1] for lst in t_group]
-    ov = [lst[1] for lst in o_group]
-    U1, p = mannwhitneyu(tv, ov)
+    t_v = [lst[1] for lst in t_group]
+    o_v = [lst[1] for lst in o_group]
+    U1, p = mannwhitneyu(t_v, o_v)
     print(p)
-    print((np.average(tv), np.average(ov)))
+    p_vals.append(p)
+    print((np.average(t_v), np.average(o_v)))
     #rosenthal correlation
-    nx, ny = len(tv), len(ov)
+    nx, ny = len(t_v), len(o_v)
     U2 = nx*ny - U1
     U = min(U1, U2)
     z, N = utest_zscore(U, nx, ny)
     r = rosenthal_corr(z, N)
     #common language
     f = common_lang(U1, nx, ny)
+    
+    #adjust p-vals
+    p_adjusted = multipletests(p_vals, alpha=0.01, method='fdr_bh')
+    print(f'adjusted p-values: \n{p_adjusted}')
 
     #heatmaps
     o_path = f'{sa_path}/snpmi_heatmaps/{a_s[0]}_{a_s[1]}'

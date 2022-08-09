@@ -71,7 +71,7 @@ def get_sc_d(sc_path, years=[2000 + i for i in range(21)]):
     return sc_d
 
 
-def top_scores_tm(tnpmi_y_d, snpmi_y_d, sc_d):
+def tnpmi_mscores(tnpmi_y_d, snpmi_y_d, sc_d):
 
     categories = list(set([cat for y in tnpmi_y_d for cat in tnpmi_y_d[y]]))
     years = sorted([y for y in tnpmi_y_d])
@@ -108,11 +108,11 @@ def main():
     U1, p = mannwhitneyu(dep, leg)
     print(p)
 
-    #correlation between top M* and top T* word level
+    #correlation between M* and T* word level
     with open(f'{to_path}/tnpmi_y_d.pickle', 'rb') as f_name:
         tnpmi_y_d = pickle.load(f_name)
     sc_d = get_sc_d(sc_path)
-    tm_tpls = misc.get_items('tm', sa_path, top_scores_tm, tnpmi_y_d, snpmi_y_d, sc_d)
+    tm_tpls = misc.get_items('tm', sa_path, tnpmi_mscores, tnpmi_y_d, snpmi_y_d, sc_d)
     X = [tpl[1][0] for tpl in tm_tpls]
     y = [tpl[1][1] for tpl in tm_tpls]
     print(stats.spearmanr(X, y))

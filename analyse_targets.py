@@ -1,3 +1,6 @@
+from sklearn import linear_model
+import statsmodels.api as sm
+import scipy.stats as stats
 from matplotlib.ticker import MultipleLocator
 import numpy as np
 from analyse_type import average_wscores, bar_chart_words
@@ -5,7 +8,7 @@ from tqdm import tqdm
 from analyse_sense import spearman_scatter
 import re
 from statsmodels.sandbox.stats.multicomp import multipletests
-from scipy.stats import kruskal, f_oneway, mannwhitneyu
+from scipy.stats import kruskal, f_oneway, mannwhitneyu, normaltest
 import argparse
 import seaborn as sns
 import pandas as pd
@@ -31,29 +34,6 @@ sa_path = f'{root}/sense_analysis'
 to_path = f'{root}/t_measures_output_sample'
 ta_path = f'{root}/type_analysis'
 
-
-#def test_tscat_kw(w, senses, tsnpmi_y_d, categories, adjust_pvals=True, alpha=0.05, method='fdr_bh'):
-#    
-#    senses = [s for s in senses if s.split('_')[0] == w]
-#    p_vals = []
-#    for s in senses:
-#        groups = []
-#        for cat in categories:
-#            groups.append([tsnpmi_y_d[y][cat][s] for y in tsnpmi_y_d if s in tsnpmi_y_d[y][cat]])
-#        groups = [g for g in groups if g != []]
-#        H, p = kruskal(*groups)
-#        p_vals.append(p)
-#    if adjust_pvals:
-#        p_adjusted = multipletests(p_vals, alpha=alpha, method=method)
-#        kw_d = {s: p_adjusted[1][i] for i, s in enumerate(senses)}
-#        kw_df = pd.DataFrame.from_dict(kw_d, orient='index', columns=['adjusted p values'])
-#    else:
-#        kw_d = {s: p_vals[i] for i, s in enumerate(senses)}
-#        kw_df = pd.DataFrame.from_dict(kw_d, orient='index', columns=['p values'])
-#    
-#    return kw_df 
-#
-#
 
 def scatter_ts_topscores(tsnpmi_y_d, tsnvol_d, snpmi_y_d, snvol_d, sa_path, min_num=10, colours=[[0, 0, 1], [0.5, 0.5, 0.5]], alphas=[0.5, 0.2], x_label='Top $S*$', y_label='Top $W*$', font_size=20, tick_size=15):
 
@@ -149,15 +129,15 @@ def natural_key(string_):
     return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', string_)]
 
 
-def get_senses_vocab(tsnpmi_y_d):
+def get_senses_vocab(tsnpmi_y_d, drop_cat=None):
 
-    categories = sorted(list(set([cat for y in tsnpmi_y_d for cat in tsnpmi_y_d[y]])))
+    categories = sorted(list(set([cat for y in tsnpmi_y_d for cat in tsnpmi_y_d[y] if cat != drop_cat])))
     senses = []
     for y in tsnpmi_y_d:
         senses += [s for cat in tsnpmi_y_d[y] for s in tsnpmi_y_d[y][cat]]
     senses = sorted(list(set(senses)), key=natural_key)
     vocab = sorted(list(set([s.split('_')[0] for s in senses])))
-    
+     
     return senses, vocab, categories
 
 
@@ -183,50 +163,107 @@ def avg_scores_df(w, d, senses, categories):
     return df
 
 
-def sense_heatmaps(vocab, senses, avg_d, categories, path, size=(12, 12)):
+def barcharts_heatmaps(tnpmi_d, avg_d, targets, senses, categories, o_path, size=(12, 18), vmin=-0.18, vmax=0.18, font_size=20, tick_size=15, drop_cat='leg', y_label='Average $T*$'):
 
-    fig, axs = plt.subplots(3, 2, figsize=size)
-    axes = axs.flatten()
-    if len(vocab) % 2 != 0:
-        cbar_ax = fig.add_axes([0.515, 0.13, 0.025, 0.195])
-    else:
-        cbar_ax = fig.add_axes([0.9, 0.4, 0.015, 0.2])
-    for i, w in enumerate(vocab):
+    fig, axs = plt.subplots(5, 2, figsize=size)
+    plt.rc('font', size=font_size)
+    cbar_ax = fig.add_axes([0.9, 0.48, 0.015, 0.1])
+    for i, w in enumerate(targets):
+        #heatmaps
         df = avg_scores_df(w, avg_d, senses, categories)
         df_rows = df.index.values
+        df_cols = df.columns
         g = sns.heatmap(df, 
                 center=0, 
-                ax=axes[i],  
+                ax=axs[i][1],  
                 cbar=i == 0, 
-                vmin=-0.2, 
-                vmax=0.2,
+                vmin=vmin, 
+                vmax=vmax,
                 cbar_ax=None if i else cbar_ax, 
                 cbar_kws={'label': 'Average $S*$'}) 
-        axes[i].set_ylabel(w)
-        axes[i].set_yticks(np.arange(0.5, len(df_rows)))
-        axes[i].set_yticklabels([s.split('_')[1] for s in df_rows])
-    if len(vocab) % 2 != 0:
-        axes[-1].set_visible(False)
-#    fig.text(1, 0.5, 'Average $S*$', rotation='vertical', ha='center', va='center')
-    fig.tight_layout(rect=(0, 0, 0.9, 1))
-
-    plt.savefig(f'{path}/heatmap_subplots.png', bbox_inches='tight')
-
-
-def anova_tests(tsnpmi_y_d, targets, senses, categories):
+#        axs[i][1].set_ylabel(w, fontsize=font_size + 5)
+        axs[i][1].set_title(w, fontsize=font_size)
+        axs[i][1].set_yticks(np.arange(0.5, len(df_rows)))
+        axs[i][1].set_yticklabels([s.split('_')[1] for s in df_rows], fontsize=tick_size)
+        axs[i][1].set_xticklabels(list(df_cols), fontsize=tick_size)
+        #bar charts
+        x = sorted([cat for cat in tnpmi_d if cat != drop_cat])
+        y = [tnpmi_d[cat][w] for cat in x]
+        x = [cat.split('_')[0] if '_' in cat else cat for cat in x]
+        axs[i][0].bar(x, y, color=[0, 0, 1])
+        axs[i][0].set_title(w, fontsize=font_size)
+        axs[i][0].ticklabel_format(axis='y', style='sci', scilimits=(0, 0))
+        axs[i][0].tick_params(axis='both', which='major', labelsize=tick_size, labelrotation=90)
+        axs[i][0].yaxis.offsetText.set_fontsize(tick_size)
+#        axs[i][0].set_ylabel('Average $T*$', fontsize=font_size)
+    fig.text(0, 0.525, y_label, ha='center', va='center', rotation='vertical', fontsize=font_size)
+    fig.tight_layout(rect=(0, 0, 0.9, 1))    
     
-    for w in targets:
-        groups = []
-        w_senses = [s for s in senses if s.split('_')[0] == w]
-        for cat in categories:
-            groups.append([tsnpmi_y_d[y][cat][s] for y in tsnpmi_y_d for s in w_senses \
-                    if s in tsnpmi_y_d[y][cat]])
-        H, p = f_oneway(*groups)
-        print(w)
-        print((H, p))
-       
-        
+    plt.savefig(f'{o_path}/test.png', bbox_inches='tight')
 
+
+def rekey_snpmi_y_d(snpmi_y_d):
+  
+    for y in snpmi_y_d:
+        snpmi_y_d[y]['home_office'] = snpmi_y_d[y].pop('home')
+        snpmi_y_d[y]['cabinet_office'] = snpmi_y_d[y].pop('cabinet')
+
+    return snpmi_y_d
+
+def get_sc_d(sc_path, years=[2000 + i for i in range(21)]):
+
+    sc_d = {y: None for y in years}
+    for y in years:
+        with open(f'{sc_path}/{y}_sc.pickle', 'rb') as f_name:
+            sc_d[y] = pickle.load(f_name)
+
+    return sc_d
+
+
+def tnpmi_mscores(tnpmi_y_d, snpmi_y_d, sc_d):
+
+    categories = list(set([cat for y in tnpmi_y_d for cat in tnpmi_y_d[y]]))
+    years = sorted([y for y in tnpmi_y_d])
+    o_lst = [] 
+    for cat in categories:
+        vocab = list(set([w for y in tnpmi_y_d for w in tnpmi_y_d[y][cat]]))
+        for w in tqdm(vocab, desc=cat):
+            w_senses = [f'{w}_{i}' for i in range(10)]
+            for y in years:
+                ws_counts = [(s, sc_d[y][s]) for s in w_senses if s in sc_d[y]]
+                if ws_counts != []:
+                    mf_s = sorted(ws_counts, key=lambda x: x[1])[-1][0]
+                    if mf_s in snpmi_y_d[y][cat] and w in tnpmi_y_d[y][cat]:
+                        m_score = snpmi_y_d[y][cat][mf_s]
+                        t_score = tnpmi_y_d[y][cat][w]
+                        o_lst.append((w, (t_score, m_score)))
+ 
+    return o_lst  
+
+
+def tnpmi_tsnpmi_lr(tnpmi_y_d, tsnpmi_y_d, targets, senses, categories):
+    
+    d = {}
+    for w in targets:
+        w_senses = [s for s in senses if s.split('_')[0] == w]
+        #each word's tnpmi
+        d[w] = [tnpmi_y_d[y][cat][w] if w in tnpmi_y_d[y][cat] else None \
+                for y in tnpmi_y_d for cat in tnpmi_y_d[y]]
+        #snpmi
+        for s in w_senses:
+            d[s] = [tsnpmi_y_d[y][cat][s] if s in tsnpmi_y_d[y][cat] else None \
+                    for y in tnpmi_y_d for cat in tnpmi_y_d[y]]
+    df = pd.DataFrame.from_dict(d)
+    for key in d:
+        df[key] = df[key].fillna(df[key].median())
+    regr = linear_model.LinearRegression()
+    X = df[senses]
+    y = df[targets]
+    regr.fit(X, y)
+    print(regr.coef_)
+    print(regr.score(X, y))  
+   
+   
 def main():
     
     parser = argparse.ArgumentParser()
@@ -234,11 +271,7 @@ def main():
     args = parser.parse_args()
     a_s = [int(v) for v in args.a_s.split('-')]
 
-    with open(f'{to_path}/tnpmi_y_d.pickle', 'rb') as f_name:
-        tnpmi_y_d = pickle.load(f_name)
-    o_path = f'{ta_path}/bar_charts'
-    tnpmi_d = average_wscores(tnpmi_y_d)
-
+    
     with open(f'{so_path}/as_output_{a_s[0]}_{a_s[1]}/tsnpmi_y_d.pickle', 'rb') as f_name:
         tsnpmi_y_d = pickle.load(f_name)
     with open(f'{so_path}/as_output_{a_s[0]}_{a_s[1]}/tsnvol_d.pickle', 'rb') as f_name:
@@ -282,14 +315,29 @@ def main():
     o_path = f'{sa_path}/snpmi_heatmaps/{a_s[0]}_{a_s[1]}'
     if not os.path.exists(o_path):
         os.makedirs(o_path)
-    senses, _, categories = get_senses_vocab(tsnpmi_y_d)
+    with open(f'{to_path}/tnpmi_y_d.pickle', 'rb') as f_name:
+        tnpmi_y_d = pickle.load(f_name)
+    senses, _, categories = get_senses_vocab(tsnpmi_y_d, drop_cat='leg')
     avg_d = avg_scores(senses, categories, tsnpmi_y_d)
-    sense_heatmaps(targets, senses, avg_d, categories, o_path)
-
+#    sense_heatmaps(targets, senses, avg_d, categories, o_path)
+    #tnpmi bar charts
+#    o_path = f'{ta_path}/bar_charts'
+    tnpmi_d = average_wscores(tnpmi_y_d)
+#    tnpmi_bar_charts(targets, tnpmi_d, o_path, drop_cat='leg') 
+    barcharts_heatmaps(tnpmi_d, avg_d, targets, senses, categories, o_path)
+    
     #tests
-    #kruskal-wallis
-    anova_tests(tsnpmi_y_d, targets, senses, categories)
-
+    #m score tnpmi correlation
+    sc_path = f'{so_path}/as_output_{a_s[0]}_{a_s[1]}/sense_counts' 
+    sc_d = get_sc_d(sc_path)
+    tsnpmi_y_d = rekey_snpmi_y_d(tsnpmi_y_d)
+    tm_tpls = tnpmi_mscores(tnpmi_y_d, tsnpmi_y_d, sc_d)
+    X = [tpl[1][0] for tpl in tm_tpls]
+    y = [tpl[1][1] for tpl in tm_tpls]
+    print((stats.spearmanr(X, y), f'n={len(X)}'))
+  
+    #multiple linear regression correlating tnpmi with each sense
+    tnpmi_tsnpmi_lr(tnpmi_y_d, tsnpmi_y_d, targets, senses, categories)    
 
 if __name__ == '__main__':
     main()

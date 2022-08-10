@@ -117,7 +117,7 @@ def top_sscores_esizes_utest(t_g, o_g):
     #common language
     f = common_lang(U1, nx, ny)
     
-    return p
+    return U1, p, r
 
 
 def natural_key(string_):
@@ -177,26 +177,6 @@ def tnpmi_mscores(tnpmi_y_d, snpmi_y_d, sc_d):
     return o_lst  
 
 
-def kw_mscores(o_lst, targets, drop_cat='leg'):
-
-    categories = sorted(list(set([tpl[0][1] for tpl in o_lst if tpl[0][1] != drop_cat])))
-    results = []
-    for w in targets:
-        groups = []
-        n = 0
-        for cat in categories:
-            obs = [tpl[1][1] for tpl in o_lst if tpl[0][1] == cat and tpl[0][0] == w]
-            groups.append(obs)
-            n += len(obs)
-        H, p = kruskal(*groups)
-        #epsilon squared effect size
-        k = len(groups)
-        etasqr = (H - k + 1) / (n - k) 
-        results.append([w, H, p, etasqr])
-
-    print(results)
-
-
 def mscore_barcharts(o_lst, targets, o_path, y_label='Average M*', size=(12, 12), drop_cat='leg', font_size=20, tick_size=15):
 
     categories = sorted(list(set([tpl[0][1] for tpl in o_lst if tpl[0][1] != drop_cat])))
@@ -215,6 +195,42 @@ def mscore_barcharts(o_lst, targets, o_path, y_label='Average M*', size=(12, 12)
     fig.tight_layout()
 
     plt.savefig(f'{o_path}/bc_test.png', bbox_inches='tight')
+
+
+def kw_mscores(o_lst, targets, drop_cat='leg'):
+
+    categories = sorted(list(set([tpl[0][1] for tpl in o_lst if tpl[0][1] != drop_cat])))
+    results = []
+    for w in targets:
+        groups = []
+        n = 0
+        for cat in categories:
+            obs = [tpl[1][1] for tpl in o_lst if tpl[0][1] == cat and tpl[0][0] == w]
+            groups.append(obs)
+            n += len(obs)
+        H, p = kruskal(*groups)
+        #eta squared effect size
+        k = len(groups)
+        etasqr = (H - k + 1) / (n - k) 
+        results.append([w, H, etasqr, p])
+    
+    return results
+
+
+def mw_mscores(t_groups, o_lst, drop_cat='leg'):
+    
+    results = []
+    for tpl in t_groups:
+        w = tpl[0]
+        categories = tpl[1]
+        t_group = [tpl[1][1] for tpl in o_lst \
+                if tpl[0][1] in categories and tpl[0][0] == w]
+        o_group = [tpl[1][1] for tpl in o_lst \
+                if not tpl[0][1] in categories and tpl[0][0] == w]
+        U1, p, r = top_sscores_esizes_utest(t_group, o_group)
+        results.append([tpl, U1, r, p])
+
+    return results
 
 
 def main():
@@ -240,12 +256,14 @@ def main():
     t_s = [lst[0] for lst in t_group]
     o_s = [lst[0] for lst in o_group]
     print('Specificity')
-    p_vals.append(top_sscores_esizes_utest(t_s, o_s))
+    _, p, _ = top_sscores_esizes_utest(t_s, o_s)
+    p_vals.append(p)
     #vol
     t_v = [lst[1] for lst in t_group]
     o_v = [lst[1] for lst in o_group]
     print('Volatility')
-    p_vals.append(top_sscores_esizes_utest(t_v, o_v))   
+    _, p, _ = top_sscores_esizes_utest(t_v, o_v)
+    p_vals.append(p)   
     #adjust p-vals
     p_adjusted = multipletests(p_vals, alpha=0.01, method='fdr_bh')    
     print(f'adjusted p-values: \n{p_adjusted}')
@@ -276,12 +294,25 @@ def main():
     plt.figure()
     plt.scatter(X, y, alpha=0.2)
     plt.savefig(f'{sa_path}/mscore_test.png', bbox_inches='tight')
-    print((stats.spearmanr(X, y), f'n={len(X)}'))
-    
+    print((stats.spearmanr(X, y), f'n={len(X)}'))    
     #mscore kruskal wallis
-    kw_mscores(tm_tpls, targets)
+    results1 = kw_mscores(tm_tpls, targets)
     mscore_barcharts(tm_tpls, targets, sa_path)
-
+    #post-hoc u tests
+    t_groups = [
+            ('resilience', ['cabinet_office']),
+            ('sustainable', ['DEFRA', 'FCO', 'MOH']),
+            ('sustainability', ['DCMS', 'DEFRA', 'MOH']),
+            ('wellbeing', ['DHSC'])
+            ]
+    results2 = mw_mscores(t_groups, tm_tpls)
+    #adjust p values and display results
+    results = results1 + results2
+    p_vals = [lst[-1] for lst in results]
+    adj_pvals = multipletests(p_vals, method='bonferroni')[1]
+    df = pd.DataFrame(results, columns=['test name', 'test statistic', 'effect size', 'p-value'])
+    df['adjusted p-values'] = adj_pvals
+    print(df)
 
 if __name__ == '__main__':
     main()

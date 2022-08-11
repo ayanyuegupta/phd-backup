@@ -281,7 +281,7 @@ def main():
     print((U1, p))
     print((np.median(l_ts), np.median(d_ts)))
     
-    #tests
+    #m score tests
     #m score tnpmi correlation
     with open(f'{to_path}/tnpmi_y_d.pickle', 'rb') as f_name:
         tnpmi_y_d = pickle.load(f_name)
@@ -295,7 +295,7 @@ def main():
     plt.scatter(X, y, alpha=0.2)
     plt.savefig(f'{sa_path}/mscore_test.png', bbox_inches='tight')
     print((stats.spearmanr(X, y), f'n={len(X)}'))    
-    #mscore kruskal wallis
+    #m score kruskal wallis
     results1 = kw_mscores(tm_tpls, targets)
     mscore_barcharts(tm_tpls, targets, sa_path)
     #post-hoc u tests
@@ -309,7 +309,7 @@ def main():
     #adjust p values and display results
     results = results1 + results2
     p_vals = [lst[-1] for lst in results]
-    adj_pvals = multipletests(p_vals, method='bonferroni')[1]
+    adj_pvals = multipletests(p_vals, method='fdr_bh')[1]
     df = pd.DataFrame(results, columns=['test name', 'test statistic', 'effect size', 'p-value'])
     df['adjusted p-values'] = adj_pvals
     print(df)

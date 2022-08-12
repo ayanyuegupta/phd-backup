@@ -31,7 +31,7 @@ c_path = f'{data_root}/clusters_{k_range[0]}_{k_range[1]}'
 def get_counts(so_path, ts_path, years):
 
     tsc_d = {}
-    sc_d = {y: {} for y in years}
+    sc_d = {}
     for y in years:
         with open(f'{ts_path}/sense_counts/{y}_scc.pickle', 'rb') as f_name:
             tsc_d[y] = pickle.load(f_name)

@@ -1,3 +1,4 @@
+import math
 import scipy.stats as stats
 from tqdm import tqdm
 import os
@@ -69,7 +70,7 @@ def st(categories, sc_yd):
                 fsenses_term += sum([sc_yd[cat][sense] for cat in categories \
                         if sense in sc_yd[cat]])
             p_s_given_term = fs_term / fsenses_term
-            st_d[cat][s] = p_s_given_cterm / p_s_given_term
+            st_d[cat][s] = math.log(p_s_given_cterm / p_s_given_term)
             #add in code for normalisation
 
     return st_d
@@ -95,7 +96,7 @@ def wt(sc_d):
                 term = s.split('_')[0]
                 term_senses = [f'{term}_{i}' for i in range(10)]
                 #P(s_c | t, term_c)
-                fsenses_termc = sum([sc_d[y][cat][s] for y in sc_d for s in term_senses \
+                fsenses_termc = sum([sc_d[y][cat][s] for s in term_senses \
                         if s in sc_d[y][cat]])
                 p_sc_given_ttermc = sc_d[y][cat][s] / fsenses_termc
                 #P(s_c | term_c)
@@ -106,7 +107,7 @@ def wt(sc_d):
                     fsenses_termc += sum([sc_d[y][cat][sense] for y in sc_d \
                             if sense in sc_d[y][cat]])
                 p_s_given_termc = fs_termc / fsenses_termc
-                wt_d[y][cat][s] = p_sc_given_ttermc / p_s_given_termc
+                wt_d[y][cat][s] = math.log(p_sc_given_ttermc / p_s_given_termc)
                 #add in code for normalisation
 
     return wt_d
@@ -127,9 +128,8 @@ def tnpmi_mtscores(tnpmi_y_d, st_y_d, sc_d):
                     mf_s = sorted(ws_counts, key=lambda x: x[1])[-1][0]
                     if mf_s in st_y_d[y][cat] and w in tnpmi_y_d[y][cat]:
                         m_score = st_y_d[y][cat][mf_s]
-                        if m_score < 1:
-                            t_score = tnpmi_y_d[y][cat][w]
-                            o_lst.append((w, (t_score, m_score)))
+                        t_score = tnpmi_y_d[y][cat][w]
+                        o_lst.append((w, (t_score, m_score)))
  
     return o_lst
 
@@ -162,7 +162,7 @@ def main():
     X = [tpl[1][0] for tpl in tm_tpls]
     y = [tpl[1][1] for tpl in tm_tpls]
     plt.figure()
-    plt.scatter(X, y, alpha=0.5)
+    plt.scatter(X, y, alpha=0.2)
     plt.savefig(f'{sa_path}/scatter_test.png', bbox_inches='tight')
     print(stats.spearmanr(X, y))
 

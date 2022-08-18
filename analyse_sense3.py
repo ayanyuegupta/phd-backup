@@ -1,4 +1,4 @@
-import analyse_sense as an_s
+import analyse_type as ant
 import argparse
 import scipy.stats as stats
 import math
@@ -35,31 +35,80 @@ c_path = f'{data_root}/gov_corp/clusters_{name}'
 years = [str(2000 + i) for i in range(21)]
 
 
-def scatter_stwt_scores(st_y_d, wt_d, sa_path, target_words=[]):
+def rekey_snpmi_y_d(snpmi_y_d):
+  
+    for y in snpmi_y_d:
+        snpmi_y_d[y]['home_office'] = snpmi_y_d[y].pop('home')
+        snpmi_y_d[y]['cabinet_office'] = snpmi_y_d[y].pop('cabinet')
+
+    return snpmi_y_d
+
+
+def scatter_stwt_scores(st_y_d, wt_d, o_path, targets=[], size=(6, 6), by_cat=True, prop=1):
     
-    plt.figure(figsize=(6, 6))
     categories = list(set([cat for y in st_y_d for cat in st_y_d[y]]))
-    X = []
-    y = []
-    tX = []
-    ty = [] 
-    for cat in categories:
+    score_d = {'top_nv': [], 'top_tnpmi': [], 'categories': []}
+    if not by_cat:
+        X = []
+        y = []
+        tX = []
+        ty = [] 
+    for cat in tqdm(categories):
         senses = list(set([s for y in st_y_d for s in st_y_d[y][cat]]))
+        senses = sorted(senses)[: int(len(senses) * prop)]
+        if by_cat:
+            X = []
+            y = []
+            tX = []
+            ty = [] 
         for s in senses:
             term = s.split('_')[0]
             if term in targets:
-                tX.append(np.median([st_y_d[y][cat][s] for y in st_y_d if s in st_y_d[y][cat]]))
-                ty.append(np.median([wt_d[y][cat][s] for y in wt_d if s in st_y_d[y][cat]]))
+                tX.append(max([st_y_d[y][cat][s] for y in st_y_d if s in st_y_d[y][cat]]))
+                ty.append(max([wt_d[y][cat][s] for y in wt_d if s in st_y_d[y][cat]]))
             else:
-                X.append(np.median([st_y_d[y][cat][s] for y in st_y_d if s in st_y_d[y][cat]]))
-                y.append(np.median([wt_d[y][cat][s] for y in wt_d if s in st_y_d[y][cat]]))
-    plt.scatter(X, y, color=[0.5, 0.5, 0.5], alpha=0.2)
-    plt.scatter(tX, ty, color=[0, 0, 1], alpha=0.2)
-    plt.savefig(f'{sa_path}/st_wt_corr.png', bbox_inches='tight')
+                top_st = max([st_y_d[y][cat][s] for y in st_y_d if s in st_y_d[y][cat]])
+                X.append(top_st)
+                top_wt = max([wt_d[y][cat][s] for y in wt_d if s in st_y_d[y][cat]])
+                y.append(top_wt)
+                score_d['top_tnpmi'].append(top_st)
+                score_d['top_nv'].append(top_wt)
+                score_d['categories'].append(cat)
+        if by_cat:
+            plt.figure(figsize=size)
+            plt.scatter(X, y, color=[0, 0, 1], alpha=0.2)
+            plt.savefig(f'{o_path}/{cat}.png', bbox_inches='tight')
+    if not by_cat:
+        plt.figure(figsize=size)
+        plt.scatter(X, y, color=[0.5, 0.5, 0.5], alpha=0.2)
+        plt.scatter(tX, ty, color=[0, 0, 1], alpha=0.2)
+        plt.savefig(f'{o_path}/all.png', bbox_inches='tight')
     print(stats.spearmanr(X, y))
-    print(stats.spearmanr(tX, ty))
+    if tX != [] and ty != []:
+        print(stats.spearmanr(tX, ty))
 
-    return X, tX, y, ty
+    return score_d
+
+
+def tnpmi_mtscores(tnpmi_y_d, st_y_d, sc_d):
+
+    categories = list(set([cat for y in tnpmi_y_d for cat in tnpmi_y_d[y]]))
+    years = sorted([y for y in tnpmi_y_d])
+    o_lst = [] 
+    for cat in categories:
+        vocab = list(set([w for y in tnpmi_y_d for w in tnpmi_y_d[y][cat]]))
+        for w in tqdm(vocab, desc=cat):
+            w_senses = [f'{w}_{i}' for i in range(10)]
+            for y in years:
+                ws_counts = [(s, sc_d[y][cat][s]) for s in w_senses if s in sc_d[y][cat]]
+                if ws_counts != []:
+                    mf_s = sorted(ws_counts, key=lambda x: x[1])[-1][0]
+                    if mf_s in st_y_d[y][cat] and w in tnpmi_y_d[y][cat]:
+                        m_score = st_y_d[y][cat][mf_s]
+                        t_score = tnpmi_y_d[y][cat][w]
+                        o_lst.append((w, (t_score, m_score)))
+ 
+    return o_lst
 
 
 def main():
@@ -75,20 +124,32 @@ def main():
     with open(f'{ts_path}/wt_d.pickle', 'rb') as f_name:
         wt_d = pickle.load(f_name)   
    
+    #scatter T* and M* scores
+    with open(f'{ts_path}/sc_d.pickle', 'rb') as f_name:
+        sc_d = pickle.load(f_name)
+    #rekey
+    st_y_d = rekey_snpmi_y_d(st_y_d)
+    wt_d = rekey_snpmi_y_d(wt_d)
+    sc_d = rekey_snpmi_y_d(sc_d)
+    #scatter 
+    with open(f'{to_path}/tnpmi_y_d.pickle', 'rb') as f_name:
+        tnpmi_y_d = pickle.load(f_name)
+    tm_tpls = tnpmi_mtscores(tnpmi_y_d, st_y_d, sc_d)
+    X = [tpl[1][0] for tpl in tm_tpls]
+    y = [tpl[1][1] for tpl in tm_tpls]
+    plt.figure()
+    plt.scatter(X, y, alpha=0.2)
+    plt.savefig(f'{sa_path}/scatter_test.png', bbox_inches='tight')
+    print(stats.spearmanr(X, y))
+    
     #scatter top st wt scores
-    scatter_stwt_cores(st_y_d, wt_d, sa_path, targets=targets)
+    o_path = f'{sa_path}/stwt_corr'
+    if not os.path.exists(o_path):
+        os.makedirs(o_path)
+    score_d = scatter_stwt_scores(st_y_d, wt_d, o_path)
     
     #linear regressions
-#    #scatter sense specificities and volatilies
-#    path = f'{sa_path}/corr_ss_sv'
-#    if not os.path.exists(path):
-#        os.makedirs(path)
-#    for year in st_y_d:
-#        for cat in st_y_d[year]:
-#            X = [st_y_d[year][cat][s] for s in st_y_d[year][cat]]
-#            y = [wt_d[year][cat][s] for s in st_y_d[year][cat]]
-#            an_s.spearman_scatter(X, y, f'{path}/{year}_{cat}.png', x_label='$S_T$', y_label='$W_T$', title=f'{year} {cat}', alpha=0.2)
-
+    ant.top_scores_lri(score_d, sa_path, x_label='Top $S^*_T$', y_label='Top $W^*_T$')
 
 if __name__ == '__main__':
     main()

@@ -201,6 +201,8 @@ def main():
         tnpmi_y_d = pickle.load(f_name)
     with open(f'{to_path}/cby_d.pickle', 'rb') as f_name:
         cby_d = pickle.load(f_name)
+    with open(f'{so_path}/as_output_9_10/st_y_d.pickle', 'rb') as f_name:
+        st_y_d = pickle.load(f_name)
 #    with open(f'{to_path}/avg_dis.pickle', 'rb') as f_name:
 #        avg_dis = pickle.load(f_name)
 
@@ -210,13 +212,14 @@ def main():
     snpmi_d = mi.get_items('snpmi_d', so_path, avg_years, snpmi_y_d, categories=categories)
     tnpmi_d = mi.get_items('tnpmi_d', to_path, avg_years, tnpmi_y_d, categories=None)
     m_d = mi.get_items('m_d', so_path, m_scores, snpmi_d, all_years_sc, categories=categories)
-    
+    m_d_st = mi.get_items('m_d_st', so_path, m_scores, snpmi_d, all_years_sc, categories=categories)
+
     #spearman correlation between sense and type specificity    
     path = f'{sa_path}/st_spec_corr'
     if not os.path.exists(path):
         os.makedirs(path)
     w_counts = get_wcounts(cby_d)
-    distlb_d = distinctiveness_lb(w_counts, tnpmi_d, m_d)   
+    distlb_d = distinctiveness_lb(w_counts, tnpmi_d, m_d_st)   
     X = [distlb_d[cat]['tnpmi'] for cat in distlb_d]
     y = [distlb_d[cat]['m'] for cat in distlb_d] 
     x_label = 'Fraction of words with high $T*$'

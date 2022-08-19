@@ -429,29 +429,28 @@ def main():
         os.makedirs(so_path)
     
 #    #Get counts by year
-#    cby_d = misc.get_items('cby_d', o_path, counts_by_year, data_path, years)
-#    cby_d = cut_off_point(cby_d)
-#    quit()
-#
-#    #word measures
-#    tnpmi_y_d = misc.get_items('tnpmi_y_d', o_path, get_specs, cby_d)
-#    nv_d = misc.get_items('nv_d', o_path, get_vols, cby_d)       
-#    if not os.path.exists(t_path):
-#        os.makedirs(t_path)
-##    test_scatters(tnpmi_y_d, nv_d, t_path)
-#
-#    #Distinctiveness and dynamicity
-#    dis_d, dyn_d = misc.get_items(['dis_d', 'dyn_d'], o_path, cat_scores, data_path, tnpmi_y_d, nv_d)
-#    avg_dis = misc.get_items('avg_dis', o_path, average, dis_d)
-#    avg_dyn = misc.get_items('avg_dyn', o_path, average, dyn_d)
-  
-    #sense counts
-    all_years_senses, all_years_sc = misc.get_items(['all_years_senses', 'all_years_sc'], so_path, scounts_by_year, c_path, so_path)
-    #SNPMI by year
-    snpmi_y_d = misc.get_items('snpmi_y_d', so_path, snpmi_by_year, c_path, so_path)
+    cby_d = misc.get_items('cby_d', o_path, counts_by_year, data_path, years)
+    cby_d = cut_off_point(cby_d)
 
-    #Normalised sense volatility
-    snvol_d = misc.get_items('snvol_d', so_path, sense_nvol, c_path, so_path, all_years_sc)
+    #word measures
+    tnpmi_y_d = misc.get_items('tnpmi_y_d', o_path, get_specs, cby_d)
+    nv_d = misc.get_items('nv_d', o_path, get_vols, cby_d)       
+    if not os.path.exists(t_path):
+        os.makedirs(t_path)
+#    test_scatters(tnpmi_y_d, nv_d, t_path)
+
+    #Distinctiveness and dynamicity
+    dis_d, dyn_d = misc.get_items(['dis_d', 'dyn_d'], o_path, cat_scores, data_path, tnpmi_y_d, nv_d)
+    avg_dis = misc.get_items('avg_dis', o_path, average, dis_d)
+    avg_dyn = misc.get_items('avg_dyn', o_path, average, dyn_d)
+  
+#    #sense counts
+#    all_years_senses, all_years_sc = misc.get_items(['all_years_senses', 'all_years_sc'], so_path, scounts_by_year, c_path, so_path)
+#    #SNPMI by year
+#    snpmi_y_d = misc.get_items('snpmi_y_d', so_path, snpmi_by_year, c_path, so_path)
+#
+#    #Normalised sense volatility
+#    snvol_d = misc.get_items('snvol_d', so_path, sense_nvol, c_path, so_path, all_years_sc)
      
 
 if __name__ == '__main__':

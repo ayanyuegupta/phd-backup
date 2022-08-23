@@ -1,3 +1,4 @@
+import math
 from collections import Counter
 import analyse_type as ant
 import argparse
@@ -45,48 +46,35 @@ def rekey_snpmi_y_d(snpmi_y_d):
     return snpmi_y_d
 
 
-def scatter_stwt_scores(st_y_d, wt_d, o_path, targets=[], size=(6, 6), by_cat=True, prop=1):
+def scatter_stwt_scores(st_y_d, wt_d, o_path, size=(6, 6), min_n=20):
     
     categories = list(set([cat for y in st_y_d for cat in st_y_d[y]]))
     score_d = {'top_nv': [], 'top_tnpmi': [], 'categories': []}
-    if not by_cat:
-        X = []
-        y = []
-        tX = []
-        ty = [] 
+    X = []
+    y = []
     for cat in tqdm(categories):
         senses = list(set([s for y in st_y_d for s in st_y_d[y][cat]]))
-        senses = sorted(senses)[: int(len(senses) * prop)]
-        if by_cat:
-            X = []
-            y = []
-            tX = []
-            ty = [] 
+        cX = []
+        cy = [] 
         for s in senses:
             term = s.split('_')[0]
-            if term in targets:
-                tX.append(max([st_y_d[y][cat][s] for y in st_y_d if s in st_y_d[y][cat]]))
-                ty.append(max([wt_d[y][cat][s] for y in wt_d if s in st_y_d[y][cat]]))
-            else:
-                top_st = max([st_y_d[y][cat][s] for y in st_y_d if s in st_y_d[y][cat]])
-                X.append(top_st)
-                top_wt = max([wt_d[y][cat][s] for y in wt_d if s in st_y_d[y][cat]])
-                y.append(top_wt)
-                score_d['top_tnpmi'].append(top_st)
-                score_d['top_nv'].append(top_wt)
+            sscores = [st_y_d[y][cat][s] for y in st_y_d if s in st_y_d[y][cat]]
+            vscores = [wt_d[y][cat][s] for y in wt_d if s in st_y_d[y][cat]]
+            if len(sscores) > min_n:
+                cX.append(max(sscores))
+                cy.append(max(vscores))
+                X.append(max(sscores))
+                y.append(max(vscores))
+                score_d['top_tnpmi'].append(max(sscores))
+                score_d['top_nv'].append(max(vscores))
                 score_d['categories'].append(cat)
-        if by_cat:
-            plt.figure(figsize=size)
-            plt.scatter(X, y, color=[0, 0, 1], alpha=0.2)
-            plt.savefig(f'{o_path}/{cat}.png', bbox_inches='tight')
-    if not by_cat:
         plt.figure(figsize=size)
-        plt.scatter(X, y, color=[0.5, 0.5, 0.5], alpha=0.2)
-        plt.scatter(tX, ty, color=[0, 0, 1], alpha=0.2)
-        plt.savefig(f'{o_path}/all.png', bbox_inches='tight')
+        plt.scatter(cX, cy, color=[0, 0, 1], alpha=0.2)
+        plt.savefig(f'{o_path}/{cat}.png', bbox_inches='tight')
+    plt.figure(figsize=size)
+    plt.scatter(X, y, color=[0, 0, 1], alpha=0.2)
+    plt.savefig(f'{o_path}/all.png', bbox_inches='tight')
     print(stats.spearmanr(X, y))
-    if tX != [] and ty != []:
-        print(stats.spearmanr(tX, ty))
 
     return score_d
 
@@ -111,6 +99,15 @@ def tnpmi_mtscores(tnpmi_y_d, st_y_d, sc_d):
  
     return o_lst
 
+def spearman_ci(r, n, alpha=2.58):
+
+    stderr = 1.0 / math.sqrt(n - 3)
+    delta = alpha * stderr
+    lower = math.tanh(math.atanh(r) - delta)
+    upper = math.tanh(math.atanh(r) + delta)
+
+    return lower, upper
+
 
 def mscore_analysis(sc_d, tnpmi_y_d, st_y_d, o_path, percentile=0.98, size=(6, 6)):
 
@@ -119,11 +116,11 @@ def mscore_analysis(sc_d, tnpmi_y_d, st_y_d, o_path, percentile=0.98, size=(6, 6
     y = []
     all_ws = []
     all_ss = []
-    for cat in categories:
+    for cat in tqdm(categories):
         vocab = list(set([w for y in tnpmi_y_d for w in tnpmi_y_d[y][cat]]))
         w_scores = []
         s_scores = []
-        for w in tqdm(vocab):
+        for w in vocab:
             w_senses = [f'{w}_{i}' for i in range(10)]
             tnpmis = [tnpmi_y_d[y][cat][w] for y in tnpmi_y_d \
                     if w in tnpmi_y_d[y][cat]]
@@ -143,14 +140,69 @@ def mscore_analysis(sc_d, tnpmi_y_d, st_y_d, o_path, percentile=0.98, size=(6, 6
         n_top_ss = len(sorted(s_scores)[int(len(s_scores) * percentile):])
         X.append(n_top_ws / len(vocab))
         y.append(n_top_ss / len(vocab))
-    print(stats.spearmanr(X, y))
+    r, p = stats.spearmanr(X, y)
+    print(f'r={r}, p={p}, n={len(X)}')
+    print(spearman_ci(r, len(X)))
     plt.figure(figsize=size)
     plt.scatter(X, y, color=[0, 0, 1])
     plt.savefig(f'{o_path}/cat_frac.png', bbox_inches='tight')
-    print(stats.spearmanr(all_ws, all_ss))
+    r, p = stats.spearmanr(all_ws, all_ss)
+    print(f'r={r}, p={p}, n={len(all_ws)}')
+    print(spearman_ci(r, len(all_ws)))
     plt.figure(figsize=size)
     plt.scatter(all_ws, all_ss, color=[0, 0, 1], alpha=0.2)
     plt.savefig(f'{o_path}/mscore_tnpmi_scatter.png', bbox_inches='tight')
+
+
+def measures_by_year(d, o_path, f_name, targets=['leg'], colour=[0, 0, 1], size=(6, 6), font_size=20, alpha=0.2, y_label=None, legend=True):
+   
+    font = {'size': font_size}
+    plt.rc('font', size=font_size)
+    plt.rc('legend', fontsize=font_size)
+    plt.rc('xtick', labelsize=font_size-2)
+    plt.rc('ytick', labelsize=font_size-2)
+    plt.rc('axes', titlesize=font_size)
+    
+    ax = plt.figure(figsize=size).gca()
+    categories = list(set([cat for year in d for cat in d[year]]))
+    x = sorted([year for year in d])
+    for cat in categories:
+        y = [d[year][cat] for year in  x]
+        if targets is not None:
+            if cat in targets:
+                plt.plot(x, y, c=np.array(colour), marker='o', label=cat)
+            else:
+                 plt.plot(x, y, linestyle='-', marker='o', c=np.array([0, 0, 0]), alpha=alpha)
+        else:
+            plt.plot(x, y, c=np.array(colour), marker='o', label=cat)
+
+    ax.xaxis.get_major_locator().set_params(integer=True)
+    if legend:
+        plt.legend(loc='upper left', frameon=False) 
+    if y_label is not None:
+        plt.ylabel(y_label)
+    plt.savefig(f'{o_path}/{f_name}.png', bbox_inches='tight')
+
+    return ax, categories
+
+#https://ekja.org/journal/view.php?doi=10.4097/kjae.2016.69.6.555
+def cohen_d(x, y, z=2.58):
+
+    m1 = np.average(x)
+    m2 = np.average(y)
+    std1 = np.std(x)
+    std2 = np.std(y)
+    n1 = len(x)
+    n2 = len(y)
+    pooled_std = np.sqrt(
+            (((n1 - 1) * std1 ** 2) + ((n2 - 1) * std2 ** 2)) / (n1 + n2 - 2)
+            )
+    d = (m1 - m2) / pooled_std
+    sigma_d = np.sqrt(((n1 + n1) / (n1 * n2)) + (d ** 2 / (2 * (n1 + n2))))
+    lb = d - z * sigma_d
+    ub = d + z * sigma_d 
+
+    return d, lb, ub, m1, m2 
 
 
 def main():
@@ -169,6 +221,8 @@ def main():
         tnpmi_y_d = pickle.load(f_name)
     with open(f'{so_path}/snpmi_y_d.pickle', 'rb') as f_name:
         snpmi_y_d = pickle.load(f_name)
+    with open(f'{so_path}/snvol_d.pickle', 'rb') as f_name:
+        snvol_d = pickle.load(f_name)
     with open(f'{ts_path}/sc_d.pickle', 'rb') as f_name:
         sc_d = pickle.load(f_name)
     #rekey
@@ -176,6 +230,7 @@ def main():
     wt_d = rekey_snpmi_y_d(wt_d)
     sc_d = rekey_snpmi_y_d(sc_d)
     snpmi_y_d = rekey_snpmi_y_d(snpmi_y_d)
+    snvol_d = rekey_snpmi_y_d(snvol_d)
 
 #    #scatter T* and M* scores
 #    #scatter 
@@ -196,24 +251,26 @@ def main():
     if not os.path.exists(o_path):
         os.makedirs(o_path)
     score_d = scatter_stwt_scores(st_y_d, wt_d, o_path)
+    
     #linear regressions
-    ant.top_scores_lri(score_d, sa_path, x_label='Top $S^*_T$', y_label='Top $W^*_T$')
+    ant.top_scores_lri(score_d, sa_path, x_label='Top $S^\#$', y_label='Top $W^\#$')
+    
+    #welch t-test for diff between leg dep top W^#
+    df = pd.DataFrame.from_dict(score_d)
+    x = df.loc[df['categories'] == 'leg']['top_tnpmi']
+    y = df.loc[df['categories'] == 'dep']['top_tnpmi']
+    #specificity
+    t, p = stats.ttest_ind(x, y, equal_var=False)
+    d, lb, ub, m1, m2 = cohen_d(x, y)
+    
+    print((t, p, d, lb, ub, m1, m2, f'{len(x) + len(y)}'))
 
-    #test difference between legislative and departmental sense scores
-    categories = list(set([cat for y in st_y_d for cat in st_y_d[y]]))
-    dep_scores = []
-    leg_scores = []
-    for cat in categories:
-        senses = list(set([s for y in st_y_d for s in st_y_d[y][cat]]))
-        for s in senses:
-            if cat == 'leg':
-                leg_scores.append(np.median([st_y_d[y][cat][s] for y in st_y_d \
-                        if s in st_y_d[y][cat]]))
-            else:
-                dep_scores.append(np.median([st_y_d[y][cat][s] for y in st_y_d \
-                        if s in st_y_d[y][cat]]))
-    print((np.median(dep_scores), np.median(leg_scores), len(dep_scores), len(leg_scores)))
-    print(stats.mannwhitneyu(dep_scores, leg_scores))
+    #difference between legislative and departmental median sense scores over time
+    med_d = {y: {} for y in st_y_d}
+    for y in st_y_d:
+        for cat in st_y_d[y]:
+            med_d[y][cat] = np.average([st_y_d[y][cat][s] for s in st_y_d[y][cat]])
+    measures_by_year(med_d, sa_path, 'med_ss_time', y_label='Average $S^\#$')
 
 
 if __name__ == '__main__':

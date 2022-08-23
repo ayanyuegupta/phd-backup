@@ -42,7 +42,7 @@ def merge_counts(tsc_d, sc_d):
     return sc_d
 
 
-def st_by_year(sc_d, min_count=25):
+def st_by_year(sc_d, min_count=0):
 
     categories = list(set([cat for y in sc_d for cat in sc_d[y]]))
     st_y_d = {y: {cat: {} for cat in categories} for y in years}
@@ -75,7 +75,7 @@ def st_by_year(sc_d, min_count=25):
     return st_y_d
 
 
-def wt(sc_d, min_count=25):
+def wt(sc_d, min_count=0):
 
     categories = list(set([cat for y in sc_d for cat in sc_d[y]]))
     wt_d = {y: {cat: {} for cat in categories} for y in years}

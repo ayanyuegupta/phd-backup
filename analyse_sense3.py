@@ -185,22 +185,23 @@ def measures_by_year(d, o_path, f_name, targets=['leg'], colour=[0, 0, 1], size=
 
     return ax, categories
 
-#https://ekja.org/journal/view.php?doi=10.4097/kjae.2016.69.6.555
-def cohen_d(x, y, z=2.58):
+
+def delta(x, y, z=2.58):
 
     m1 = np.average(x)
     m2 = np.average(y)
-    std1 = np.std(x)
-    std2 = np.std(y)
+    sd1 = np.std(x)
+    sd2 = np.std(y)
     n1 = len(x)
     n2 = len(y)
-    pooled_std = np.sqrt(
-            (((n1 - 1) * std1 ** 2) + ((n2 - 1) * std2 ** 2)) / (n1 + n2 - 2)
+    avg_sd = np.sqrt(
+            0.5 * (sd1 ** 2 + sd2 ** 2)
             )
-    d = (m1 - m2) / pooled_std
-    sigma_d = np.sqrt(((n1 + n1) / (n1 * n2)) + (d ** 2 / (2 * (n1 + n2))))
-    lb = d - z * sigma_d
-    ub = d + z * sigma_d 
+    d = (m1 - m2) / avg_sd
+    sigma_d = (d ** 2) * ((sd1 ** 4 / (n1 - 1)) + (sd2 ** 4 / (n2 - 1))) / (8 * avg_sd ** 4)  \
+            + (sd1 ** 2) / (avg_sd ** 2 * (n1 - 1)) + (sd2 ** 2) / (avg_sd ** 2 * (n2 - 1)) 
+    lb = d - z * np.sqrt(sigma_d)
+    ub = d + z * np.sqrt(sigma_d) 
 
     return d, lb, ub, m1, m2 
 
@@ -261,7 +262,7 @@ def main():
     y = df.loc[df['categories'] == 'dep']['top_tnpmi']
     #specificity
     t, p = stats.ttest_ind(x, y, equal_var=False)
-    d, lb, ub, m1, m2 = cohen_d(x, y)
+    d, lb, ub, m1, m2 = delta(x, y)
     
     print((t, p, d, lb, ub, m1, m2, f'{len(x) + len(y)}'))
 

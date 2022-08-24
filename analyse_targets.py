@@ -1,9 +1,7 @@
 from sklearn import linear_model
 import statsmodels.api as sm
 import scipy.stats as stats
-from matplotlib.ticker import MultipleLocator
 import numpy as np
-from analyse_type import average_wscores, bar_chart_words
 from tqdm import tqdm
 import re
 from statsmodels.sandbox.stats.multicomp import multipletests
@@ -13,7 +11,6 @@ import seaborn as sns
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.colors import LinearSegmentedColormap
 import pickle
 import os
 
@@ -74,23 +71,38 @@ def scatter_ts_topscores(targets, st_y_d, wt_d, sa_path, min_num=20, colours=[[0
     return t_group, o_group
 
 
-def cohen_d(x, y, z=2.58):
+#https://www.researchgate.net/publication/5298423_Confidence_Intervals_for_Standardized_Linear_Contrasts_of_Means
+def delta(x, y, z=2.58):
 
     m1 = np.average(x)
     m2 = np.average(y)
-    std1 = np.std(x)
-    std2 = np.std(y)
+    sd1 = np.std(x)
+    sd2 = np.std(y)
     n1 = len(x)
     n2 = len(y)
-    pooled_std = np.sqrt(
-            (((n1 - 1) * std1 ** 2) + ((n2 - 1) * std2 ** 2)) / (n1 + n2 - 2)
+    avg_sd = np.sqrt(
+            0.5 * (sd1 ** 2 + sd2 ** 2)
             )
-    d = (m1 - m2) / pooled_std
-    sigma_d = np.sqrt(((n1 + n1) / (n1 * n2)) + (d ** 2 / (2 * (n1 + n2))))
-    lb = d - z * sigma_d
-    ub = d + z * sigma_d 
+    d = (m1 - m2) / avg_sd
+    sigma_d = (d ** 2) * ((sd1 ** 4 / (n1 - 1)) + (sd2 ** 4 / (n2 - 1))) / (8 * avg_sd ** 4)  \
+            + (sd1 ** 2) / (avg_sd ** 2 * (n1 - 1)) + (sd2 ** 2) / (avg_sd ** 2 * (n2 - 1)) 
+    lb = d - z * np.sqrt(sigma_d)
+    ub = d + z * np.sqrt(sigma_d) 
 
     return d, lb, ub, m1, m2 
+
+
+def kde_plots(data_list, labels, o_path, size=(6, 6), x_label=None):
+
+    plt.figure(figsize=size)
+    for i, data in enumerate(data_list):
+        sns.kdeplot(data=data, label=labels[i])
+    if x_label is not None:
+        plt.xlabel(x_label, fontsize=20)
+    plt.ylabel('Probability Density', fontsize=20)
+    plt.tick_params(axis='both', labelsize=15)
+    plt.legend(fontsize=15, frameon=False)
+    plt.savefig(f'{o_path}', bbox_inches='tight')
 
 
 def main():
@@ -112,14 +124,22 @@ def main():
     t_s = [lst[0] for lst in t_group]
     o_s = [lst[0] for lst in o_group]
     t, p = stats.ttest_ind(t_s, o_s, equal_var=False)
-    d, lb, ub, m1, m2 = cohen_d(t_s, o_s)
+    d, lb, ub, m1, m2 = delta(t_s, o_s)
     print((t, p, d, lb, ub, m1, m2))
     #vol
     t_v = [lst[1] for lst in t_group]
     o_v = [lst[1] for lst in o_group]
     t, p = stats.ttest_ind(t_s, o_v, equal_var=False)
-    d, lb, ub, m1, m2 = cohen_d(t_v, o_v)
+    d, lb, ub, m1, m2 = delta(t_v, o_v)
     print((t, p, d, lb, ub, m1, m2))
+    
+    #kde plots
+    data_list = [t_s, o_s]
+    labels = ['target senses', 'other senses']
+    kde_plots(data_list, labels, f'{sa_path}/kde_spec.png', x_label='Top $S^\#$')
+    data_list = [t_v, o_v]
+    kde_plots(data_list, labels, f'{sa_path}/kde_vol.png', x_label='Top $W^\#$')
+
 
 if __name__ == '__main__':
     main()

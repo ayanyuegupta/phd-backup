@@ -1,11 +1,11 @@
-#Analysis of the Vocabulary of the British State 2000-2020
+# Analysis of the Vocabulary of the British State 2000-2020
 
 Code used for my PhD thesis *BERT for Discourse Analysis: A Pragmatist Approach to Governmentality*. Purpose of code is to (a) isolate vocabulary variation across the British state's division of labour and (b) analyse the word senses that result from the diffusion of 'resilience', 'sustainable', 'sustainability' and 'wellbeing' into the organisations of the British state.
 
 The method word sense induction via BERT used here was taken from Lucy, L., Bamman, D. (2021). ‘Characterizing English Variation across Social Media Communities with BERT’. Transactions of the Association for Computational Linguistics: 538–56. Many thanks to Lucy Li and David Bamman for making the code available: https://github.com/lucy3/ingroup_lang 
 
 
-##Description of files
+## Description of files
 
 Get word counts and specificity/volatility scores:
 * measures.py
@@ -43,5 +43,5 @@ Analyse use of 'resilience', 'sustainable', 'sustainability' and 'wellbeing' -- 
 Retrieve contents of induced sense clusters, get cluster key terms:
 * analyse_sense_clusters.py
 
-##Data
+## Data
 Dataset was constructed from government publications scraped from https://www.gov.uk/search, https://webarchive.nationalarchives.gov.uk/search and https://www.legislation.gov.uk. Approximately 170000 documents were scraped, from which a stratified random sample of 92 million tokens was constructed. 

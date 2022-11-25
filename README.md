@@ -1,3 +1,4 @@
+<div style="text-align: justify">
 # Analysis of the Vocabulary of the British State 2000-2020
 
 Code used for my PhD thesis *BERT for Discourse Analysis: A Pragmatist Approach to Governmentality*. My thesis explores the utility of deep learning language models as a tool for understanding governmental discourse. I argue that BERT can be used as a tool for understanding the linguistic diffusion through which neoliberal governmental discourses surrounding 'resilience', 'sustainability' and 'wellbeing' spread throughout the organisations of the British state during 2000-2020. 
@@ -59,4 +60,4 @@ Analyse use of 'resilience', 'resilient', 'sustainable', 'sustainability' and 'w
 Retrieve contents of induced sense clusters, get cluster key terms:
 * analyse_sense_clusters.py
 
-
+</div>

@@ -4,7 +4,9 @@ Code used for my PhD thesis *BERT for Discourse Analysis: A Pragmatist Approach 
 
 Purpose of code is to (a) examine vocabulary variation across the British state's division of labour and (b) analyse the word senses that result from the diffusion of 'resilience', 'resilient', 'sustainable', 'sustainability' and 'wellbeing' into the organisations of the British state. Word sense induction via BERT was used for (b).
 
-The method of word sense induction via BERT used here was taken from **Lucy, L., Bamman, D. (2021). ‘Characterizing English Variation across Social Media Communities with BERT’. Transactions of the Association for Computational Linguistics: 538–56.** Much of the code used to perform word sense induction here is taken from Lucy and Bamman's code, with some alterations made to adapt the code to my purposes. Many thanks to Lucy Li and David Bamman for making the code available: https://github.com/lucy3/ingroup_lang 
+Code used for my PhD thesis *BERT for Discourse Analysis: A Pragmatist Approach to Governmentality*. Purpose of code is to (a) examine vocabulary variation across the British state's division of labour and (b) analyse the word senses that result from the diffusion of 'resilience', 'resilient', 'sustainable', 'sustainability' and 'wellbeing' into the organisations of the British state.
+
+The method of word sense induction via BERT used here was taken from **Lucy, L., Bamman, D. (2021). ‘Characterizing English Variation across Social Media Communities with BERT’. *Transactions of the Association for Computational Linguistics*: 538–56.** Much of the code used to perform word sense induction here is taken from Lucy and Bamman's code, with some alterations made to adapt the code to my purposes. Many thanks to Lucy Li and David Bamman for making their code available: https://github.com/lucy3/ingroup_lang 
 
 ## Data
 
@@ -28,8 +30,8 @@ Perform word sense induction on total vocabulary:
 * cluster_train.py
 * cluster_match.py
 
-Induce additional senses for 'resilience', 'sustainable', 'sustainability' & 'wellbeing' and get/visualise sense scores:
-* add_senses_run.py This runs the following:
+Induce additional senses for 'resilience', 'resilient', 'sustainable', 'sustainability' & 'wellbeing' and get/visualise sense scores:
+* add_senses_run.py. This runs the following:
     * add_centroids.py
     * add_senses.py
     * add_senses_measures.py 
@@ -43,13 +45,13 @@ Analyse sense specificity and sense volatility -- run regressions, hypothesis te
 * analyse_sense2.py
 * analyse_sense3.py
 
-Get sense specificities and volatilities for induced senses of 'resilience', 'sustainable', 'sustainability' & 'wellbeing':
+Get sense specificities and volatilities for induced senses of 'resilience', 'resilient', 'sustainable', 'sustainability' & 'wellbeing':
 * measures2.py
 
-Visualise change in relative frequency of 'resilience', 'sustainable', 'sustainability' & 'wellbeing':
+Visualise change in relative frequency of 'resilience', 'resilient', 'sustainable', 'sustainability' & 'wellbeing':
 * analyse_diffusion.py
 
-Analyse use of 'resilience', 'sustainable', 'sustainability' and 'wellbeing' -- get frequency distributions, compare means, get effect sizes etc.:
+Analyse use of 'resilience', 'resilient', 'sustainable', 'sustainability' and 'wellbeing' -- get frequency distributions, compare means, get effect sizes etc.:
 * analyse_targets.py
 * analyse_targets2.py
 

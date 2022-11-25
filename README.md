@@ -12,7 +12,7 @@ Dataset was constructed from government publications scraped from https://www.go
 
 ## Some Example Results
 
-<img src="/example_results/6.png" width="50%">
+<img src="/example_results/6.png" width="75%">
 The plots on the left of this figure show the relative frequencies over time of 'resilience', 'resilient', 'sustainable', 'sustainability' and 'wellbeing'. The plots on the right show the relative frequencies over time of the senses of 'resilience', 'resilient', 'sustainable', 'sustainability' and 'wellbeing' induced through BERT. 
 
 The general increase in the relative frequencies of these words in the 2000s corroborates research that notes the increased prevalence of discussion about resilience/sustainability/wellbeing over the past 2-3 decades. Authors have argued this prevalence is the result of the diffusion of these notions from academia into state organisations (e.g. the way 'resilience' is used in state organisations has it's roots in C.S. Holling's use of 'resilience' in his analysis of ecosystems). 

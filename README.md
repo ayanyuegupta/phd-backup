@@ -8,7 +8,7 @@ The method of word sense induction via BERT used here was taken from **Lucy, L.,
 
 ## Data
 
-Dataset was constructed from government publications scraped from https://www.gov.uk/search, https://webarchive.nationalarchives.gov.uk/search and https://www.legislation.gov.uk. Approximately 170000 documents were scraped, from which a stratified random sample of 92 million tokens was constructed. 
+Dataset was constructed from government publications scraped from https://www.gov.uk/search, https://webarchive.nationalarchives.gov.uk/search and https://www.legislation.gov.uk. Approximately 170000 documents were scraped, from which a stratified random sample of 92 million tokens was constructed. Download dataset here: https://zenodo.org/records/8196971
 
 ## Some Example Results
 
